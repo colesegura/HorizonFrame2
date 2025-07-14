@@ -5,20 +5,7 @@
 //  Created by Cole Segura on 7/14/25.
 //
 
-import SwiftUI
+// This file is no longer needed and will be removed or repurposed.
+// For now, it is intentionally left blank to avoid build errors
+// while we structure the new views.
 
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
-
-#Preview {
-    ContentView()
-}
