@@ -29,12 +29,19 @@ HorizonFrame is an iOS mindfulness app designed to help users align their daily 
 
 ## Current Status
 - **Feature-Complete**: All planned features for version 2.0 are implemented.
+- **Recent Major Updates**:
+  - **Onboarding Data Persistence**: Implemented OnboardingDataManager singleton to store goal, visualization, and action item data during onboarding flow
+  - **Goal Model Extensions**: Added visualization and isFromOnboarding properties to Goal model
+  - **Paywall Redesign**: Complete redesign to match onboarding style with proper free trial messaging and pricing display
+  - **Subscription Management**: Fixed infinite recursion bug in SubscriptionManager and improved pricing display
+  - **Data Storage**: Switched back to persistent storage to prevent data loss on app restart
 - **UI Refinements**: Recent improvements include:
   - Enhanced onboarding flow with clearer placeholders and improved text field behavior
   - Consistent text input formatting across all pages
   - Immediate placeholder disappearance on text field focus
   - Fixed text capitalization to preserve user input
   - Aligned placeholder text with cursor position (leading alignment)
+  - Paywall UI matches onboarding design with gradients and dark theme
 - **App Store Ready**: The app is prepared for submission and distribution via the Apple App Store.
 
 ## Onboarding Guidance for New Developers

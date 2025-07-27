@@ -13,14 +13,27 @@ struct PaywallView: View {
         if let product = subscriptionManager.availableProducts.first(where: { $0.id == "com.horizonframe.yearly" }) {
             return product.displayPrice
         }
-        return "$59.99/year"
+        return "$49.99"
+    }
+    
+    private var yearlyWeeklyEquivalent: String {
+        // Calculate weekly equivalent: $49.99 / 52 weeks = ~$0.96
+        if let product = subscriptionManager.availableProducts.first(where: { $0.id == "com.horizonframe.yearly" }) {
+            // Extract numeric value from display price and calculate weekly equivalent
+            let priceString = product.displayPrice.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: "/year", with: "")
+            if let yearlyAmount = Double(priceString) {
+                let weeklyAmount = yearlyAmount / 52.0
+                return String(format: "$%.2f", weeklyAmount)
+            }
+        }
+        return "$0.96"
     }
     
     private var weeklyPrice: String {
         if let product = subscriptionManager.availableProducts.first(where: { $0.id == "com.horizonframe.weekly" }) {
             return product.displayPrice
         }
-        return "$4.99/week"
+        return "$1.99"
     }
     
     var body: some View {
@@ -28,41 +41,54 @@ struct PaywallView: View {
             Color.black.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header with close button
+                // Header with restore purchases and close button
                 HStack {
+                    Button(action: {
+                        Task {
+                            await subscriptionManager.restorePurchases()
+                        }
+                    }) {
+                        Text("Restore")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    
                     Spacer()
+                    
                     Button("✕") {
                         dismiss()
                     }
+                    .foregroundColor(.gray)
                     .font(.title2)
-                    .foregroundColor(.white)
-                    .padding()
                 }
+                .padding(.horizontal)
+                .padding(.top, 10)
+                .padding(.bottom, 20)
                 
                 ScrollView {
-                    VStack(spacing: 40) {
+                    VStack(spacing: 30) {
                         // Title
                         VStack(spacing: 16) {
-                            Text("Start Your Free Trial")
-                                .font(.largeTitle.bold())
+                            Text("Start your Free Trial and gain clarity")
+                                .font(.title.bold())
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.center)
                             
-                            Text("Activate Your Ritual Plan")
+                            Text("Build a life aligned with your dreams")
                                 .font(.title2)
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                         }
-                        .padding(.top, 20)
+                        .padding(.top, 10)
                         
                         // Pricing Options
                         VStack(spacing: 16) {
                             // Yearly Plan
-                            PricingPlan(
+                            CustomPricingCard(
                                 title: "Yearly",
                                 price: yearlyPrice,
-                                detail: "7-day free trial",
-                                isRecommended: true,
+                                weeklyEquivalent: "only \(yearlyWeeklyEquivalent)/week",
+                                freeTrialText: "Free for 1 week",
                                 isSelected: selectedPlan == "yearly",
                                 showBadge: true,
                                 badgeText: "60% OFF"
@@ -71,11 +97,11 @@ struct PaywallView: View {
                             }
                             
                             // Weekly Plan
-                            PricingPlan(
+                            CustomPricingCard(
                                 title: "Weekly",
-                                price: weeklyPrice,
-                                detail: "3-day free trial",
-                                isRecommended: false,
+                                price: "\(weeklyPrice)/week",
+                                weeklyEquivalent: "",
+                                freeTrialText: "Free for 3 days",
                                 isSelected: selectedPlan == "weekly",
                                 showBadge: false,
                                 badgeText: ""
@@ -91,32 +117,28 @@ struct PaywallView: View {
                                 await startFreeTrial()
                             }
                         }) {
-                            VStack(spacing: 8) {
-                                Text("Start Free Trial")
-                                    .font(.headline.bold())
-                                    .foregroundColor(.black)
-                                
-                                Text("No payment due now")
-                                    .font(.caption)
-                                    .foregroundColor(.black.opacity(0.7))
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                LinearGradient(
-                                    colors: [.white, .gray.opacity(0.9)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .cornerRadius(25)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            )
+                            Text(selectedPlan == "yearly" ? "Start Your First Week" : "Start Your Free 3 Days")
+                                .font(.headline.bold())
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.blue)
+                                .cornerRadius(25)
                         }
                         .disabled(isPurchasing)
                         .padding(.horizontal, 20)
+                        
+                        // No payment due now text with checkmark
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.gray)
+                                .font(.caption)
+                            
+                            Text("No payment due now!")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 4)
                         
                         // Features
                         VStack(spacing: 16) {
@@ -126,25 +148,14 @@ struct PaywallView: View {
                             
                             VStack(spacing: 12) {
                                 FeatureRow(icon: "target", title: "Unlimited Goals")
-                                FeatureRow(icon: "eye.fill", title: "Advanced Visualizations")
-                                FeatureRow(icon: "chart.line.uptrend.xyaxis", title: "Detailed Analytics")
-                                FeatureRow(icon: "bell.fill", title: "Smart Reminders")
+                                FeatureRow(icon: "photo.fill", title: "Aligned Wallpapers")
+                                FeatureRow(icon: "bell.fill", title: "Motivational Reminders")
                             }
+                            .frame(maxWidth: .infinity, alignment: .center)
                         }
                         .padding(.horizontal, 20)
                         
-                        // Restore Purchases
-                        Button(action: {
-                            Task {
-                                await subscriptionManager.restorePurchases()
-                            }
-                        }) {
-                            Text("Restore Purchases")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                        }
-                        
-                        // Terms and Privacy
+                        // Terms and Privacy - moved up
                         VStack(spacing: 8) {
                             Text("By continuing, you agree to our")
                                 .font(.caption)
@@ -158,7 +169,7 @@ struct PaywallView: View {
                             .foregroundColor(.blue)
                         }
                         
-                        Spacer(minLength: 50)
+                        Spacer(minLength: 30)
                     }
                 }
             }
@@ -203,15 +214,90 @@ struct FeatureRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.blue)
+                .foregroundColor(.white)
                 .frame(width: 24)
             
             Text(title)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundColor(.white)
-            
-            Spacer()
         }
+    }
+}
+
+struct CustomPricingCard: View {
+    let title: String
+    let price: String
+    let weeklyEquivalent: String
+    let freeTrialText: String
+    let isSelected: Bool
+    let showBadge: Bool
+    let badgeText: String
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                VStack(spacing: 8) {
+                    HStack {
+                        // Left side - title and price
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(title)
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .fontWeight(.regular)
+                            
+                            // Price - same size as free trial text but white
+                            Text(price)
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        // Right side - weekly equivalent and free trial
+                        VStack(alignment: .trailing, spacing: 4) {
+                            // Weekly equivalent (only for yearly)
+                            if !weeklyEquivalent.isEmpty {
+                                Text(weeklyEquivalent)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                            }
+                            
+                            // Free trial text - grey
+                            Text(freeTrialText)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.gray.opacity(isSelected ? 0.2 : 0.1))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? Color.white : Color.clear, lineWidth: 2)
+                )
+                
+                // Badge - positioned to align with border
+                if showBadge {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Text(badgeText)
+                                .font(.caption.bold())
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .offset(x: -8, y: -8)
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
