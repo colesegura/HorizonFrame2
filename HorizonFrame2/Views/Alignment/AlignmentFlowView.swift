@@ -4,38 +4,48 @@ struct AlignmentFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentPage = 0
     let breathingDuration: TimeInterval
+    let selectedGoals: [Goal]
+    let goalsToVisualize: [Goal]
+    let onComplete: () -> Void
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             Color.black.ignoresSafeArea()
 
             TabView(selection: $currentPage) {
                 BreathingView(currentPage: $currentPage, duration: breathingDuration)
                     .tag(0)
                 
-                VisualizationView(currentPage: $currentPage)
+                VisualizationView(currentPage: $currentPage, goalsToVisualize: selectedGoals)
                     .tag(1)
 
-                CompletionView()
+                ActionItemsView(currentPage: $currentPage, goals: selectedGoals, onComplete: onComplete)
                     .tag(2)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .ignoresSafeArea()
             
-            // Custom Page Indicator & Back Button
-            HStack {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "arrow.backward")
-                        .font(.title2)
-                        .foregroundColor(.white)
+            // Custom Page Indicator & Back Button - positioned at top
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "arrow.backward")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    Spacer()
+                    CustomPageIndicator(pageCount: 3, currentPage: $currentPage)
+                    Spacer()
+                    // A spacer to balance the back button
+                    Image(systemName: "arrow.backward").opacity(0)
                 }
+                .padding()
+                .padding(.top, 50) // Increased from 10 to 50 to move down from status bar
+                
                 Spacer()
-                CustomPageIndicator(pageCount: 3, currentPage: $currentPage)
-                Spacer()
-                // A spacer to balance the back button
-                Image(systemName: "arrow.backward").opacity(0)
             }
-            .padding()
         }
+        .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
     }
@@ -57,5 +67,6 @@ struct CustomPageIndicator: View {
 }
 
 #Preview {
-    AlignmentFlowView(breathingDuration: 300)
+    let goals = [Goal(text: "Preview Goal 1", order: 0), Goal(text: "Preview Goal 2", order: 1)]
+    return AlignmentFlowView(breathingDuration: 300, selectedGoals: goals, goalsToVisualize: goals, onComplete: {})
 }

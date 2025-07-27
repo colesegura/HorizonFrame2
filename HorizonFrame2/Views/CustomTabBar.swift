@@ -25,7 +25,6 @@ struct CustomTabBar: View {
         .background(Color.black.opacity(0.8))
         .clipShape(Capsule())
         .padding(.horizontal)
-        .shadow(color: .white.opacity(0.2), radius: 10, x: 0, y: 5)
     }
 }
 

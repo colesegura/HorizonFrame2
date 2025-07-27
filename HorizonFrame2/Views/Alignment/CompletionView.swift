@@ -4,6 +4,7 @@ import SwiftData
 struct CompletionView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \DailyAlignment.date, order: .reverse) private var alignments: [DailyAlignment]
+    let alignedGoals: [Goal] // The goals that were part of this alignment
     
     @Environment(\.dismiss) private var dismiss
     @State private var streakCount = 0
@@ -11,6 +12,9 @@ struct CompletionView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Background color
+                Color.black.ignoresSafeArea()
+                
                 // Main content
                 VStack(spacing: 40) {
                     Spacer()
@@ -58,15 +62,25 @@ struct CompletionView: View {
         
         // Check if today's alignment is already saved
         if !alignments.contains(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
-            let newAlignment = DailyAlignment(date: today, completed: true)
+            // Use the alignedGoals passed from the current session
+            let newAlignment = DailyAlignment(date: today, completed: true, goals: alignedGoals)
             modelContext.insert(newAlignment)
+            try? modelContext.save()
+            // Debug: print all alignments and their goals after saving
+            let allAlignments = (try? modelContext.fetch(FetchDescriptor<DailyAlignment>())) ?? []
+            print("[DEBUG] All alignments after save:")
+            for a in allAlignments {
+                print("[DEBUG] alignment: \(a.date) completed: \(a.completed) goals: \(a.goals.map { $0.text })")
+            }
         }
         
         calculateStreak()
         
         // Check for awards
         let awardManager = AwardManager(modelContext: modelContext)
-        awardManager.checkAllAwards(stats: (currentStreak: streakCount, longestStreak: 0, total: alignments.count + 1), totalFocuses: 0) // Focuses checked elsewhere
+        // Note: You might need to fetch the total number of goals differently now
+        // For now, we'll pass 0 and assume it's handled elsewhere
+        awardManager.checkAllAwards(stats: (currentStreak: streakCount, longestStreak: 0, total: alignments.count + 1), totalFocuses: 0) 
     }
     
     private func calculateStreak() {
@@ -99,7 +113,8 @@ struct StreakView: View {
                 .padding(.bottom, 16)
             
             HStack(spacing: 16) {
-                ForEach(0..<5) { i in
+                // Display days in correct order: today, yesterday, etc.
+                ForEach([0, 1, 2, 3, 4], id: \.self) { i in
                     DayCircleView(dayIndex: i, alignments: alignments)
                 }
             }
@@ -154,16 +169,18 @@ struct DayCircleView: View {
 
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: DailyAlignment.self, configurations: config)
+    ({
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: Goal.self, DailyAlignment.self, configurations: config)
 
-    // Add sample data for preview
-    let today = Calendar.current.startOfDay(for: .now)
-    container.mainContext.insert(DailyAlignment(date: today, completed: true))
-    let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
-    container.mainContext.insert(DailyAlignment(date: yesterday, completed: true))
+        // Sample goals for the preview
+        let sampleGoal1 = Goal(text: "Preview Goal 1", order: 0)
+        let sampleGoal2 = Goal(text: "Preview Goal 2", order: 1)
+        let today = Calendar.current.startOfDay(for: .now)
+        container.mainContext.insert(DailyAlignment(date: today, completed: true, goals: [sampleGoal1]))
 
-    return CompletionView()
-        .modelContainer(container)
-        .background(Color.black)
+        return CompletionView(alignedGoals: [sampleGoal1, sampleGoal2])
+            .modelContainer(container)
+            .background(Color.black)
+    })()
 }

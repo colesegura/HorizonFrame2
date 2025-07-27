@@ -1,8 +1,20 @@
 import SwiftUI
+import SwiftData
 
 struct TodayView: View {
+    @Query private var goals: [Goal]
+    @Query private var alignments: [DailyAlignment]
     @State private var showAlignmentFlow = false
-    @State private var breathingDuration: TimeInterval = 300
+    @State private var showCompletion = false
+    @State private var completedGoals: [Goal] = []
+    @AppStorage("preferredMeditationDuration") private var breathingDuration: TimeInterval = 300
+    @State private var selectedGoals: Set<Goal> = []
+    @State private var showDayDetail: Bool = false
+    @State private var selectedDayForDetail: Date? = nil
+
+    private var activeGoals: [Goal] {
+        goals.filter { !$0.isArchived }
+    }
 
     var body: some View {
         NavigationStack {
@@ -10,8 +22,7 @@ struct TodayView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack {
-                    // Top Welcome Text
-                    VStack(spacing: 8) {
+                    VStack(spacing: 10) {
                         Text("Welcome.")
                         Text("Today is \(Date().formatted(date: .abbreviated, time: .omitted)).")
                         Text("Let's get your mind right for the day.")
@@ -19,42 +30,71 @@ struct TodayView: View {
                     .font(.system(size: 22))
                     .foregroundColor(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
-                    .padding(.top, 60)
-                    
-                    Spacer()
-                    
-                    // Middle "Begin" button with decorative circles
-                    HStack(spacing: 24) {
-                        // Decorative circles on the left
-                        Circle().fill(Color.gray.opacity(0.3)).frame(width: 30, height: 30)
-                        Circle().fill(Color.gray.opacity(0.6)).frame(width: 50, height: 50)
-                        
-                        // "Begin" Button
-                        Button(action: { showAlignmentFlow = true }) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.white)
-                                    .frame(width: 168, height: 168)
-                                    .shadow(color: .white.opacity(0.3), radius: 10, x: 0, y: 0)
-                                Text("Begin")
-                                    .font(.system(size: 32, weight: .bold))
-                                    .foregroundColor(.black)
-                            }
+                    .padding(.top, 30)
+                    Spacer(minLength: 0)
+                    Button(action: { showAlignmentFlow = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 168, height: 168)
+                                .shadow(color: .white.opacity(0.3), radius: 10, x: 0, y: 0)
+                            Text("Begin")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.black)
                         }
-                        
-                        // Decorative circles on the right
-                        Circle().fill(Color.gray.opacity(0.6)).frame(width: 50, height: 50)
-                        Circle().fill(Color.gray.opacity(0.3)).frame(width: 30, height: 30)
+                    }
+                    .disabled(selectedGoals.isEmpty)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 24)
+                    
+                    if !activeGoals.isEmpty {
+                        VStack(spacing: 8) {
+                            Text("Align with:")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.top)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            GeometryReader { geometry in
+                                HStack {
+                                    Spacer(minLength: 0)
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(activeGoals) { goal in
+                                                Button(action: {
+                                                    if selectedGoals.contains(goal) {
+                                                        selectedGoals.remove(goal)
+                                                    } else {
+                                                        selectedGoals.insert(goal)
+                                                    }
+                                                }) {
+                                                    Text(goal.text)
+                                                        .font(.caption)
+                                                        .lineLimit(1)
+                                                        .padding(.horizontal, 12)
+                                                        .padding(.vertical, 8)
+                                                        .background(selectedGoals.contains(goal) ? Color.green : Color.gray.opacity(0.3))
+                                                        .foregroundColor(.white)
+                                                        .clipShape(Capsule())
+                                                }
+                                            }
+                                        }
+                                        .frame(minWidth: geometry.size.width, alignment: .center)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                            .frame(height: 50)
+                        }
+                        .frame(height: 100)
                     }
                     
-                    // Duration Picker
-                    TimeSelectionView(selectedDuration: $breathingDuration)
+                    Text("Duration: \(Int(breathingDuration / 60)) min")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.top, 8)
                     
                     Spacer()
                     
-                    // This is a placeholder for the custom tab bar.
-                    // The actual tab bar is managed by MainTabView.
-                    // We add padding to ensure content doesn't go under the real tab bar.
                     Rectangle()
                         .fill(Color.clear)
                         .frame(height: 80)
@@ -62,99 +102,36 @@ struct TodayView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    StreakCounterView()
+                    HStack(spacing: 12) {
+                        UpgradeButton()
+                        StreakCounterView()
+                    }
                 }
             }
             .navigationDestination(isPresented: $showAlignmentFlow) {
-                AlignmentFlowView(breathingDuration: breathingDuration)
+                AlignmentFlowView(
+                    breathingDuration: breathingDuration, 
+                    selectedGoals: Array(selectedGoals),
+                    goalsToVisualize: Array(selectedGoals),
+                    onComplete: {
+                        completedGoals = Array(selectedGoals)
+                        showAlignmentFlow = false
+                        showCompletion = true
+                    }
+                )
             }
-        }
-    }
-}
-
-struct TimeSelectionView: View {
-    @Binding var selectedDuration: TimeInterval
-    @State private var showCustomTimeSheet = false
-
-    let timeOptions: [TimeInterval] = [60, 180, 300, 600]
-
-    var body: some View {
-        HStack(spacing: 10) {
-            ForEach(timeOptions, id: \.self) { duration in
-                Button(action: {
-                    selectedDuration = duration
-                }) {
-                    Text("\(Int(duration / 60)) min")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(selectedDuration == duration ? .black : .white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(selectedDuration == duration ? Color.white : Color.gray.opacity(0.2))
-                        .cornerRadius(20)
-                        .animation(.spring(), value: selectedDuration)
+            .navigationDestination(isPresented: $showCompletion) {
+                CompletionView(alignedGoals: completedGoals)
+            }
+            .navigationDestination(isPresented: $showDayDetail) {
+                if let date = selectedDayForDetail {
+                    DayDetailView(selectedDate: date)
                 }
             }
-            
-            Button(action: {
-                showCustomTimeSheet = true
-            }) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(!timeOptions.contains(selectedDuration) ? .black : .white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(!timeOptions.contains(selectedDuration) ? Color.white : Color.gray.opacity(0.2))
-                    .cornerRadius(20)
-                    .animation(.spring(), value: selectedDuration)
+            .onAppear {
+                selectedGoals = Set(activeGoals)
             }
         }
-        .sheet(isPresented: $showCustomTimeSheet) {
-            CustomTimePickerSheet(duration: $selectedDuration)
-        }
-    }
-}
-
-struct CustomTimePickerSheet: View {
-    @Binding var duration: TimeInterval
-    @Environment(\.dismiss) private var dismiss
-    
-    @State private var tempDuration: TimeInterval
-    
-    init(duration: Binding<TimeInterval>) {
-        self._duration = duration
-        self._tempDuration = State(initialValue: duration.wrappedValue)
-    }
-    
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 30) {
-                Text("Custom Breathing Time")
-                    .font(.largeTitle).bold()
-                
-                Text("\(Int(tempDuration / 60)) minutes")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                
-                Slider(value: $tempDuration, in: 60...1800, step: 60)
-                    .accentColor(.white)
-                
-                Button(action: {
-                    duration = tempDuration
-                    dismiss()
-                }) {
-                    Text("Set Time")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white)
-                        .cornerRadius(15)
-                }
-            }
-            .padding(30)
-        }
-        .preferredColorScheme(.dark)
     }
 }
 

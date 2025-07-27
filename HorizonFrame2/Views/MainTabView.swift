@@ -12,7 +12,7 @@ struct MainTabView: View {
                 if selectedTab == 0 {
                     TodayView()
                 } else if selectedTab == 1 {
-                    FocusesView()
+                    GoalsView()
                 } else if selectedTab == 2 {
                     ProgressView()
                 } else {
