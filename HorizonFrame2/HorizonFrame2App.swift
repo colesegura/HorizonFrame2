@@ -7,28 +7,48 @@
 
 import SwiftUI
 import SwiftData
+import StoreKit
 
 @main
 struct HorizonFrame2App: App {
-    var sharedModelContainer: ModelContainer = {
+    static var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Goal.self,
+            ActionItem.self,
             DailyAlignment.self,
             UnlockedAward.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+        
+        // Try persistent storage first, fall back to in-memory if migration fails
+        let persistentConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [persistentConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            print("Failed to create persistent storage, falling back to in-memory: \(error)")
+            
+            // Fallback to in-memory storage
+            let memoryConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: true
+            )
+            
+            do {
+                return try ModelContainer(for: schema, configurations: [memoryConfiguration])
+            } catch {
+                fatalError("Could not create ModelContainer even with in-memory storage: \(error)")
+            }
         }
     }()
 
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .onAppear {
+                    // Initialize subscription manager
+                    _ = SubscriptionManager.shared
+                }
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(HorizonFrame2App.sharedModelContainer)
     }
 }

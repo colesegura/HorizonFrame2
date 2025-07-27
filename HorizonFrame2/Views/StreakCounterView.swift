@@ -7,7 +7,9 @@ struct StreakCounterView: View {
     private var currentStreak: Int {
         var streak = 0
         let sortedDates = alignments.map { $0.date }.sorted { $0 > $1 }
-        var currentDate = Calendar.current.startOfDay(for: .now)
+        let today = Calendar.current.startOfDay(for: .now)
+        let hasAlignedToday = alignments.contains { Calendar.current.isDate($0.date, inSameDayAs: today) }
+        var currentDate = hasAlignedToday ? today : Calendar.current.date(byAdding: .day, value: -1, to: today)!
         
         for date in sortedDates {
             if Calendar.current.isDate(date, inSameDayAs: currentDate) {

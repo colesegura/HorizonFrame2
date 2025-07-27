@@ -12,6 +12,31 @@ struct AwardsView: View {
         GridItem(.adaptive(minimum: 120))
     ]
     
+    @State private var selectedDate = Date()
+    
+    // Remove the direct reference to instance properties in predicate
+    @State private var startOfDay: Date = Date()
+    @State private var endOfDay: Date = Date()
+    
+    @Query(
+        FetchDescriptor<DailyAlignment>(
+            predicate: nil, // We'll filter manually if needed or update dynamically
+            sortBy: [SortDescriptor(\DailyAlignment.date, order: .reverse)]
+        )
+    ) private var allAlignments: [DailyAlignment]
+    
+    private var todayAlignments: [DailyAlignment] {
+        allAlignments.filter { alignment in
+            alignment.date >= startOfDay && alignment.date < endOfDay
+        }
+    }
+    
+    init() {
+        let calendar = Calendar.current
+        self.startOfDay = calendar.startOfDay(for: Date())
+        self.endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+    }
+    
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -36,7 +61,7 @@ struct AwardCell: View {
     
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: award.icon)
+            Image(systemName: award.iconName)
                 .font(.system(size: 40))
                 .foregroundColor(isUnlocked ? .green : .gray)
             

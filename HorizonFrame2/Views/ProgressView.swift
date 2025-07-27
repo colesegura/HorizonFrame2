@@ -3,6 +3,7 @@ import SwiftData
 
 struct ProgressView: View {
     @Query(sort: \DailyAlignment.date, order: .reverse) private var alignments: [DailyAlignment]
+    // Removed selectedDate and isShowingDayDetail
     
     private var stats: (currentStreak: Int, longestStreak: Int, total: Int) {
         calculateStats()
@@ -19,40 +20,59 @@ struct ProgressView: View {
                             .font(.largeTitle).bold()
                             .foregroundColor(.white)
                         
-                        // Awards Link
-                        NavigationLink(destination: AwardsView()) {
-                            HStack {
-                                Text("View Your Awards")
-                                Image(systemName: "chevron.right")
+                        // Streak Counter at the top
+                        VStack(spacing: 4) {
+                            Text("\(stats.currentStreak) Day Streak")
+                                .font(.title2).bold()
+                                .foregroundColor(.white)
+                            Text("Days in a row you've aligned.")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 10)
+
+                        // Timeline section
+                        TimelineView()
+
+                        // Calendar in a rounded box
+                        CalendarMonthView(alignments: alignments)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            .background(Color.clear.cornerRadius(20)))
+                        .padding(.bottom, 10)
+
+                        // Awards section in a rounded box
+                        let unlockedAwardIDs: Set<String> = [] // TODO: Replace with real unlocked award IDs
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Awards")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140, maximum: 180))], spacing: 28) {
+                                ForEach(Award.allAwards, id: \.id) { award in
+                                    AwardCellWithProgress(award: award, isUnlocked: unlockedAwardIDs.contains(award.id), totalAlignments: alignments.count)
+                                }
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.gray.opacity(0.15))
-                            .cornerRadius(15)
                         }
-                        
-                        // Stats Section
-                        HStack(spacing: 20) {
-                            StatBox(value: "\(stats.currentStreak)", label: "Current Streak")
-                            StatBox(value: "\(stats.longestStreak)", label: "Longest Streak")
-                            StatBox(value: "\(stats.total)", label: "Total Alignments")
-                        }
-                        
-                        // Calendar Heatmap
-                        CalendarHeatmapView(alignments: alignments)
-                            .padding()
-                            .background(Color.gray.opacity(0.15))
-                            .cornerRadius(20)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            .background(Color.clear.cornerRadius(20)))
                         
                     }
                     .padding()
+                    .padding(.bottom, 100)
+                }
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 80)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    StreakCounterView()
+                    HStack(spacing: 12) {
+                        UpgradeButton()
+                        StreakCounterView()
+                    }
                 }
             }
         }
@@ -97,6 +117,50 @@ struct ProgressView: View {
     }
 }
 
+struct AwardCellWithProgress: View {
+    let award: Award
+    let isUnlocked: Bool
+    let totalAlignments: Int
+    
+    private var daysUntilUnlock: Int? {
+        let required = award.requiredAlignments
+        if totalAlignments >= required {
+            return nil
+        }
+        return required - totalAlignments
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(isUnlocked ? Color.yellow : Color.gray.opacity(0.3))
+                    .frame(width: 60, height: 60)
+                
+                Image(systemName: award.iconName)
+                    .font(.title2)
+                    .foregroundColor(isUnlocked ? .black : .gray)
+            }
+            
+            Text(award.title)
+                .font(.caption)
+                .foregroundColor(isUnlocked ? .white : .gray)
+                .multilineTextAlignment(.center)
+            
+            if let daysUntil = daysUntilUnlock {
+                Text("in \(daysUntil) \(daysUntil == 1 ? "day" : "days")")
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+            } else if isUnlocked {
+                Text("Unlocked!")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+            }
+        }
+        .frame(width: 100, height: 120)
+    }
+}
+
 struct StatBox: View {
     let value: String
     let label: String
@@ -114,36 +178,120 @@ struct StatBox: View {
     }
 }
 
-struct CalendarHeatmapView: View {
+// Replace CalendarHeatmapView with CalendarMonthView
+// Add a placeholder for CalendarMonthView
+struct CalendarMonthView: View {
     let alignments: [DailyAlignment]
+    // Removed onDaySelected
+    @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: .now)
     private let calendar = Calendar.current
-    private let monthFormatter = DateFormatter()
-    
-    init(alignments: [DailyAlignment]) {
-        self.alignments = alignments
-        self.monthFormatter.dateFormat = "MMMM"
-    }
+    private let weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
     
     var body: some View {
-        // This is a placeholder for the full calendar view.
-        // A proper implementation would be more complex, showing months and days.
-        // For now, we'll show a simple grid of the last 35 days.
-        let completedDays = Set(alignments.map { calendar.startOfDay(for: $0.date) })
-        let days = (0..<35).map { calendar.date(byAdding: .day, value: -$0, to: .now)! }.reversed()
-        
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7)) {
-            ForEach(days, id: \.self) { day in
-                ZStack {
-                    Circle()
-                        .fill(completedDays.contains(calendar.startOfDay(for: day)) ? Color.green.opacity(0.7) : Color.gray.opacity(0.3))
-                        .frame(width: 30, height: 30)
-                    
-                    if calendar.isDate(day, inSameDayAs: .now) {
-                        Circle().stroke(Color.white, lineWidth: 2)
+        VStack(spacing: 12) {
+            // Month navigation
+            HStack {
+                Button(action: { displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth)! }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.white)
+                        .opacity(canGoToPreviousMonth ? 1 : 0.5)
+                }
+                .disabled(!canGoToPreviousMonth)
+                
+                Spacer()
+                Text(monthYearString)
+                    .font(.headline).bold()
+                    .foregroundColor(.white)
+                Spacer()
+                Button(action: { displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth)! }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(canGoToNextMonth ? .white : .gray)
+                }
+                .disabled(!canGoToNextMonth)
+            }
+            .padding(.horizontal, 8)
+            
+            // Weekday headers
+            HStack {
+                ForEach(weekDays, id: \.self) { day in
+                    Text(day)
+                        .font(.caption2).bold()
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Calendar grid
+            let days = daysInMonthGrid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                ForEach(days, id: \.self) { day in
+                    if let day = day {
+                        let isCompleted = completedDays.contains(calendar.startOfDay(for: day))
+                        let isFuture = day > calendar.startOfDay(for: .now)
+                        NavigationLink(destination: DayDetailView(selectedDate: day)) {
+                            ZStack {
+                                if isCompleted {
+                                    Capsule()
+                                        .fill(Color.green.opacity(0.7))
+                                        .frame(height: 28)
+                                }
+                                Text("\(calendar.component(.day, from: day))")
+                                    .font(.body).bold()
+                                    .foregroundColor(isCompleted ? .white : (isFuture ? .gray : .gray))
+                            }
+                            .frame(height: 28)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text("")
+                            .frame(height: 28)
                     }
                 }
             }
         }
+        .onAppear {
+            displayedMonth = calendar.startOfMonth(for: .now)
+        }
+    }
+    
+    private var completedDays: Set<Date> {
+        Set(alignments.filter { $0.completed }.map { calendar.startOfDay(for: $0.date) })
+    }
+    
+    private var monthYearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: displayedMonth)
+    }
+    
+    private var canGoToNextMonth: Bool {
+        calendar.isDate(displayedMonth, equalTo: .now, toGranularity: .month) == false && displayedMonth < calendar.startOfMonth(for: .now)
+    }
+    private var canGoToPreviousMonth: Bool { true }
+    
+    private var daysInMonthGrid: [Date?] {
+        let range = calendar.range(of: .day, in: .month, for: displayedMonth)!
+        let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth) - 1 // 0-based
+        var days: [Date?] = Array(repeating: nil, count: firstWeekday)
+        for day in range {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) {
+                days.append(date)
+            }
+        }
+        // Pad to fill last week
+        while days.count % 7 != 0 {
+            days.append(nil)
+        }
+        return days
+    }
+}
+
+// Helper extension for startOfMonth
+extension Calendar {
+    func startOfMonth(for date: Date) -> Date {
+        let components = dateComponents([.year, .month], from: date)
+        return self.date(from: components)!
     }
 }
 

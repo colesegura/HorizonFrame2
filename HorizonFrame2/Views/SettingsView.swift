@@ -5,7 +5,7 @@ struct SettingsView: View {
     @AppStorage("isReminderEnabled") private var isReminderEnabled = false
     @AppStorage("reminderTime") private var reminderTimeInterval: Double = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: .now)?.timeIntervalSinceReferenceDate ?? Date().timeIntervalSinceReferenceDate
     @AppStorage("showOnboarding") private var showOnboarding = false
-
+    @AppStorage("preferredMeditationDuration") private var preferredMeditationDuration: TimeInterval = 300
 
 
     var body: some View {
@@ -14,6 +14,18 @@ struct SettingsView: View {
                 Color.black.ignoresSafeArea()
                 
                 Form {
+                    Section(header: Text("Meditation Duration").foregroundColor(.gray)) {
+                        Picker("Duration", selection: $preferredMeditationDuration) {
+                            Text("1 min").tag(60.0)
+                            Text("3 min").tag(180.0)
+                            Text("5 min").tag(300.0)
+                            Text("10 min").tag(600.0)
+                            Text("15 min").tag(900.0)
+                            Text("20 min").tag(1200.0)
+                        }
+                        .pickerStyle(.segmented)
+                        .foregroundColor(.white)
+                    }
                     Section(header: Text("Notifications").foregroundColor(.gray)) {
                         Toggle("Daily Reminder", isOn: $isReminderEnabled)
                             .tint(.green)
@@ -34,19 +46,11 @@ struct SettingsView: View {
                                 .foregroundColor(.gray)
                             
                             HStack {
-                                Text(ReferralManager.generateReferralCode())
-                                    .font(.system(.title3, design: .monospaced).bold())
+                                Text("Coming Soon")
+                                    .font(.system(.title3).bold())
+                                    .foregroundColor(.gray)
                                     .padding(.horizontal)
                                     .padding(.vertical, 8)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(8)
-                                
-                                Spacer()
-                                
-                                Button(action: shareCode) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.title2)
-                                }
                             }
                         }
                         .padding(.vertical, 5)

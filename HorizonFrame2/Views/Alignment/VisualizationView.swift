@@ -3,13 +3,38 @@ import SwiftData
 
 struct VisualizationView: View {
     @Binding var currentPage: Int
-    @Query(sort: \Goal.order) private var goals: [Goal]
+    let goalsToVisualize: [Goal]
     
     @State private var activeGoalIndex = 0
     @State private var timeRemaining: Double = 90
     let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
-
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var startOfDay: Date = Date()
+    @State private var endOfDay: Date = Date()
+    
+    @Query(
+        FetchDescriptor<DailyAlignment>(
+            predicate: nil, // We'll filter manually if needed or update dynamically
+            sortBy: [SortDescriptor(\DailyAlignment.date, order: .reverse)]
+        )
+    ) private var allAlignments: [DailyAlignment]
+    
+    private var todaysAlignment: [DailyAlignment] {
+        allAlignments.filter { alignment in
+            alignment.date >= startOfDay && alignment.date < endOfDay
+        }
+    }
+    
+    init(currentPage: Binding<Int>, goalsToVisualize: [Goal]) {
+        self._currentPage = currentPage
+        self.goalsToVisualize = goalsToVisualize
+        let calendar = Calendar.current
+        self.startOfDay = calendar.startOfDay(for: Date())
+        self.endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -25,7 +50,7 @@ struct VisualizationView: View {
                     
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
+                            ForEach(Array(goalsToVisualize.enumerated()), id: \.element.id) { index, goal in
                                 GoalRowView(goal: goal, 
                                             isActive: index == activeGoalIndex, 
                                             timeRemaining: timeRemaining, 
@@ -64,7 +89,7 @@ struct VisualizationView: View {
         }
         .onReceive(timer) {
             _ in
-            guard activeGoalIndex < goals.count else { return }
+            guard activeGoalIndex < goalsToVisualize.count else { return }
             
             if timeRemaining > 0 {
                 timeRemaining -= 0.1
@@ -83,7 +108,7 @@ struct VisualizationView: View {
     }
     
     private func goToNextGoal() {
-        if activeGoalIndex < goals.count - 1 {
+        if activeGoalIndex < goalsToVisualize.count - 1 {
             activeGoalIndex += 1
             timeRemaining = 90
         } else {
@@ -96,13 +121,11 @@ struct VisualizationView: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Goal.self, configurations: config)
-
-    container.mainContext.insert(Goal(text: "I earn $10,000 per month.", order: 0))
-    container.mainContext.insert(Goal(text: "I have a loving relationship.", order: 1))
-
-    return VisualizationView(currentPage: .constant(1))
-        .modelContainer(container)
+    let goals = [
+        Goal(text: "I earn $10,000 per month.", order: 0),
+        Goal(text: "I have a loving relationship.", order: 1)
+    ]
+    
+    return VisualizationView(currentPage: .constant(1), goalsToVisualize: goals)
         .background(Color.black)
 }

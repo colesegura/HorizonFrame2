@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     @Binding var showOnboarding: Bool
     @State private var tabSelection = 0
+    @State private var showExistingAccount = false
     
     private let transition = AnyTransition.asymmetric(
         insertion: .move(edge: .trailing),
@@ -13,68 +14,169 @@ struct OnboardingView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            VStack {
-                TabView(selection: $tabSelection) {
-                    OnboardingPageView(
-                        imageName: "text.book.closed.fill",
-                        title: "Set Your Focus",
-                        description: "Define your goals and intentions. What do you want to achieve today?",
-                        tag: 0
-                    )
-
-                    OnboardingPageView(
-                        imageName: "wind",
-                        title: "Align Daily",
-                        description: "Take a few minutes to breathe and visualize your goals, turning them into reality.",
-                        tag: 1
-                    )
-
-                    OnboardingPageView(
-                        imageName: "flame.fill",
-                        title: "Build Your Streak",
-                        description: "Consistency is key. Complete your alignment each day to build a powerful habit.",
-                        tag: 2
-                    )
-                    
-                    OnboardingCompletionView(showOnboarding: $showOnboarding, tag: 3)
-                        .tag(3)
-                }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                
-                // Custom Page Indicator
-                HStack(spacing: 8) {
-                    ForEach(0..<4) { index in
-                        Capsule()
-                            .fill(tabSelection == index ? Color.white : Color.gray.opacity(0.5))
-                            .frame(width: tabSelection == index ? 24 : 8, height: 8)
+            if showExistingAccount {
+                ExistingAccountView(showOnboarding: $showOnboarding)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing),
+                        removal: .move(edge: .leading)
+                    ))
+            } else {
+                VStack {
+                    // Back button (show on all pages except welcome)
+                    if tabSelection > 0 {
+                        HStack {
+                            Button(action: {
+                                withAnimation {
+                                    tabSelection -= 1
+                                }
+                            }) {
+                                Image(systemName: "arrow.left")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.white)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
                     }
-                }
-                .animation(.spring(), value: tabSelection)
-                .padding(.bottom, 30)
-
-                Button(action: {
-                    withAnimation {
-                        if tabSelection < 3 {
-                            tabSelection += 1
-                        } else {
-                            // This is handled by the completion view's button
+                    
+                    TabView(selection: $tabSelection) {
+                        WelcomeView(showOnboarding: $showOnboarding, tag: 0) {
+                            withAnimation {
+                                tabSelection = 1
+                            }
+                        }
+                        
+                        AgeView(showOnboarding: $showOnboarding, tag: 1) {
+                            withAnimation {
+                                tabSelection = 2
+                            }
+                        }
+                        
+                        OccupationView(showOnboarding: $showOnboarding, tag: 2) {
+                            withAnimation {
+                                tabSelection = 3
+                            }
+                        }
+                        
+                        GoalReviewFrequencyView(showOnboarding: $showOnboarding, tag: 3) {
+                            withAnimation {
+                                tabSelection = 4
+                            }
+                        }
+                        
+                        BiggestBlockerView(showOnboarding: $showOnboarding, tag: 4) {
+                            withAnimation {
+                                tabSelection = 5
+                            }
+                        }
+                        
+                        NinetyDayMilestoneView(showOnboarding: $showOnboarding, tag: 5) {
+                            withAnimation {
+                                tabSelection = 6
+                            }
+                        }
+                        
+                        ActionableStepView(showOnboarding: $showOnboarding, tag: 6) {
+                            withAnimation {
+                                tabSelection = 7
+                            }
+                        }
+                        
+                        FocusTimeView(showOnboarding: $showOnboarding, tag: 7) {
+                            withAnimation {
+                                tabSelection = 8
+                            }
+                        }
+                        
+                        GoalTrackingToolView(showOnboarding: $showOnboarding, tag: 8) {
+                            withAnimation {
+                                tabSelection = 9
+                            }
+                        }
+                        
+                        FallingShortFrequencyView(showOnboarding: $showOnboarding, tag: 9) {
+                            withAnimation {
+                                tabSelection = 10
+                            }
+                        }
+                        
+                        MindClearingBenefitsView(showOnboarding: $showOnboarding, tag: 10) {
+                            withAnimation {
+                                tabSelection = 11
+                            }
+                        }
+                        
+                        AccountabilityPartnersView(showOnboarding: $showOnboarding, tag: 11) {
+                            withAnimation {
+                                tabSelection = 12
+                            }
+                        }
+                        
+                        GratitudePracticeView(showOnboarding: $showOnboarding, tag: 12) {
+                            withAnimation {
+                                tabSelection = 13
+                            }
+                        }
+                        
+                        GoalVisualizationView(showOnboarding: $showOnboarding, tag: 13) {
+                            withAnimation {
+                                tabSelection = 14
+                            }
+                        }
+                        
+                        // Alignment Report Flow
+                        AlignmentReportLoadingView(showOnboarding: $showOnboarding, tag: 14) {
+                            withAnimation {
+                                tabSelection = 15
+                            }
+                        }
+                        
+                        AlignmentHookView(showOnboarding: $showOnboarding, tag: 15) {
+                            withAnimation {
+                                tabSelection = 16
+                            }
+                        }
+                        
+                        AlignmentDriftView(showOnboarding: $showOnboarding, tag: 16) {
+                            withAnimation {
+                                tabSelection = 17
+                            }
+                        }
+                        
+                        AlignmentHopeView(showOnboarding: $showOnboarding, tag: 17) {
+                            withAnimation {
+                                tabSelection = 18
+                            }
+                        }
+                        
+                        RitualBlueprintView(showOnboarding: $showOnboarding, tag: 18) {
+                            withAnimation {
+                                tabSelection = 19
+                            }
+                        }
+                        
+                        PremiumIntroView(showOnboarding: $showOnboarding, tag: 19) {
+                            withAnimation {
+                                tabSelection = 20
+                            }
+                        }
+                        
+                        PricingOptionsView(showOnboarding: $showOnboarding, tag: 20) {
+                            // End onboarding directly after pricing
+                            showOnboarding = false
                         }
                     }
-                }) {
-                    Text(tabSelection < 3 ? "Next" : "Get Started")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white)
-                        .cornerRadius(15)
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 50)
-                .opacity(tabSelection == 3 ? 0 : 1) // Hide button on last page
             }
         }
         .preferredColorScheme(.dark)
+        .onReceive(NotificationCenter.default.publisher(for: .showExistingAccount)) { _ in
+            withAnimation {
+                showExistingAccount = true
+            }
+        }
     }
 }
 
@@ -118,15 +220,10 @@ struct OnboardingCompletionView: View {
             
             pageContent
             
-            TextField("Enter referral code (optional)", text: $referralCode)
-                .font(.body)
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(10)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            
             actionButton
+
+            // Referral code feature coming soon
+            Spacer().frame(height: 20)
 
             Spacer().frame(height: 50) // To push content up a bit
         }
@@ -141,21 +238,21 @@ struct OnboardingCompletionView: View {
                 imageName: "checkmark.circle.fill",
                 title: "Reminders Enabled",
                 description: "You're all set! We'll help you stay on track.",
-                tag: 3
+                tag: 14
             )
         case .denied:
             OnboardingPageView(
                 imageName: "xmark.circle.fill",
                 title: "Reminders Disabled",
                 description: "You can enable reminders anytime in the app's Settings tab or your iPhone's Settings.",
-                tag: 3
+                tag: 14
             )
         default:
             OnboardingPageView(
                 imageName: "bell.badge.fill",
                 title: "Enable Reminders",
                 description: "A daily reminder is the best way to stay consistent and build your streak.",
-                tag: 3
+                tag: 14
             )
         }
     }
