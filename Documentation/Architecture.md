@@ -38,6 +38,15 @@ HorizonFrame2 is built using modern Apple frameworks to create a lightweight, se
 - **TimelineView.swift**: Provides a visual representation of user progress over time.
 - **DayDetailView.swift**: Shows detailed statistics and reflections for a specific day under the Progress tab.
 - **OnboardingPages.swift**: Guides new users through initial setup and personalization of the app.
+- **PaywallView.swift**: Subscription paywall with free trial offerings, redesigned to match onboarding style.
+- **UpgradeButton.swift**: Component that triggers the paywall display from various parts of the app.
+
+### Data Management
+- **OnboardingDataManager.swift**: Singleton that temporarily stores goal, visualization, and action item data during onboarding flow before persisting to SwiftData.
+- **SubscriptionManager.swift**: Handles in-app purchases, subscription management, and StoreKit integration.
+- **AwardManager.swift**: Manages user achievements and badge unlocking logic.
+- **NotificationManager.swift**: Handles local notifications and reminders.
+- **ReferralManager.swift**: Manages user referral system and tracking.
 
 ## State Management
 - **SwiftUI State and Bindings**: 
