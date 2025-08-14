@@ -1,67 +1,87 @@
 import SwiftUI
+import AuthenticationServices
 
 struct WelcomeView: View {
     @Binding var showOnboarding: Bool
+    @State private var isAuthenticated = false
+    @AppStorage("isExistingUser") private var isExistingUser = false
     let tag: Int
     var onNext: (() -> Void)?
     
     var body: some View {
         ZStack {
+            // Background
             Color.black.ignoresSafeArea()
             
-            VStack {
-                // Top 3/4 of screen - space for app screenshot
+            // Main content
+            VStack(spacing: 0) {
+                // Top spacing to push image down from top
                 Spacer()
-                    .frame(maxHeight: .infinity)
+                    .frame(height: UIScreen.main.bounds.height * 0.1)
                 
-                // Bottom 1/4 of screen - content
-                VStack(spacing: 20) {
-                    // Title and subtitle
-                    VStack(spacing: 8) {
+                // Image section - takes up most of the screen
+                Image("RotatoProgressPage2")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: UIScreen.main.bounds.height * 0.55) // Increased from 0.5 to 0.55
+                    .clipped()
+                
+                // Spacer to push content to bottom with specific spacing
+                Spacer()
+                    .frame(height: UIScreen.main.bounds.height * 0.05)
+                
+                // Text and buttons at bottom - more compact
+                VStack(spacing: 12) {
+                    VStack(spacing: 6) {
                         Text("Welcome to HorizonFrame")
-                            .font(.largeTitle.bold())
+                            .font(.title.bold())
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                         
                         Text("Start building a life aligned with your dreams today.")
-                            .font(.title3)
+                            .font(.body)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     }
                     
-                    // Get Started button
-                    Button(action: {
-                        withAnimation {
-                            onNext?()
+                    SignInWithAppleButton(
+                        .signIn,
+                        onRequest: { request in
+                            request.requestedScopes = [.fullName, .email]
+                        },
+                        onCompletion: { result in
+                            switch result {
+                            case .success(let authResults):
+                                // Handle successful authorization
+                                print("Apple Sign In successful")
+                                isAuthenticated = true
+                                
+                                // Set user as existing for future sessions
+                                isExistingUser = true
+                                
+                                // Proceed to onboarding
+                                withAnimation {
+                                    if let next = onNext {
+                                        next()
+                                    }
+                                }
+                                
+                            case .failure(let error):
+                                print("Apple Sign In failed: \(error.localizedDescription)")
+                            }
                         }
-                    }) {
-                        Text("Get Started")
-                            .font(.headline)
-                            .foregroundColor(.black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.white)
-                            .cornerRadius(15)
-                    }
-                    .padding(.horizontal, 30)
-                    
-                    // Already have an account link
-                    Button(action: {
-                        NotificationCenter.default.post(name: .showExistingAccount, object: nil)
-                    }) {
-                        Text("Already have an account?")
-                            .font(.body)
-                            .foregroundColor(.white)
-                            .underline()
-                    }
-                    
-                    Spacer()
-                        .frame(height: 20)
+                    )
+                    .signInWithAppleButtonStyle(.white) // Set to white style with black text
+                    .frame(width: UIScreen.main.bounds.width * 0.85, height: 50)
+                    .cornerRadius(15)
+                    .padding(.top, 8)
                 }
-                .padding(.bottom, 50)
+                .padding(.bottom, 30)
             }
         }
+    
         .tag(tag)
     }
 }

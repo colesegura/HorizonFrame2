@@ -1,9 +1,12 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    @EnvironmentObject private var userManager: UserManager
     @Binding var showOnboarding: Bool
     @State private var tabSelection = 0
-    @State private var showExistingAccount = false
+    @AppStorage("isExistingUser") private var isExistingUser = false
+
+
     
     private let transition = AnyTransition.asymmetric(
         insertion: .move(edge: .trailing),
@@ -14,17 +17,11 @@ struct OnboardingView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if showExistingAccount {
-                ExistingAccountView(showOnboarding: $showOnboarding)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing),
-                        removal: .move(edge: .leading)
-                    ))
-            } else {
                 VStack {
-                    // Back button (show on all pages except welcome)
+                    // Navigation buttons (show on all pages except welcome)
                     if tabSelection > 0 {
                         HStack {
+                            // Back button
                             Button(action: {
                                 withAnimation {
                                     tabSelection -= 1
@@ -34,7 +31,21 @@ struct OnboardingView: View {
                                     .font(.title2.bold())
                                     .foregroundColor(.white)
                             }
+                            
                             Spacer()
+                            
+                            // Exit button (only for existing users)
+                            if isExistingUser {
+                                Button(action: {
+                                    withAnimation {
+                                        showOnboarding = false
+                                    }
+                                }) {
+                                    Text("Exit")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 10)
@@ -106,77 +117,38 @@ struct OnboardingView: View {
                                 tabSelection = 11
                             }
                         }
-                        
-                        AccountabilityPartnersView(showOnboarding: $showOnboarding, tag: 11) {
+
+                        AlignmentReportLoadingView(showOnboarding: $showOnboarding, tag: 11) {
                             withAnimation {
                                 tabSelection = 12
                             }
                         }
-                        
-                        GratitudePracticeView(showOnboarding: $showOnboarding, tag: 12) {
+
+                        AlignmentHookView(showOnboarding: $showOnboarding, tag: 12) {
                             withAnimation {
                                 tabSelection = 13
                             }
                         }
-                        
-                        GoalVisualizationView(showOnboarding: $showOnboarding, tag: 13) {
-                            withAnimation {
-                                tabSelection = 14
-                            }
-                        }
-                        
-                        // Alignment Report Flow
-                        AlignmentReportLoadingView(showOnboarding: $showOnboarding, tag: 14) {
+
+                        AlignmentDriftView(showOnboarding: $showOnboarding, tag: 13) {
                             withAnimation {
                                 tabSelection = 15
                             }
                         }
-                        
-                        AlignmentHookView(showOnboarding: $showOnboarding, tag: 15) {
+
+                        PricingOptionsView(showOnboarding: $showOnboarding, tag: 15) {
                             withAnimation {
                                 tabSelection = 16
                             }
                         }
-                        
-                        AlignmentDriftView(showOnboarding: $showOnboarding, tag: 16) {
-                            withAnimation {
-                                tabSelection = 17
-                            }
-                        }
-                        
-                        AlignmentHopeView(showOnboarding: $showOnboarding, tag: 17) {
-                            withAnimation {
-                                tabSelection = 18
-                            }
-                        }
-                        
-                        RitualBlueprintView(showOnboarding: $showOnboarding, tag: 18) {
-                            withAnimation {
-                                tabSelection = 19
-                            }
-                        }
-                        
-                        PremiumIntroView(showOnboarding: $showOnboarding, tag: 19) {
-                            withAnimation {
-                                tabSelection = 20
-                            }
-                        }
-                        
-                        PricingOptionsView(showOnboarding: $showOnboarding, tag: 20) {
-                            // End onboarding directly after pricing
-                            showOnboarding = false
-                        }
+
+                        OnboardingCompletionView(showOnboarding: $showOnboarding, tag: 16)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 }
-            }
         }
         .preferredColorScheme(.dark)
-        .onReceive(NotificationCenter.default.publisher(for: .showExistingAccount)) { _ in
-            withAnimation {
-                showExistingAccount = true
-            }
-        }
+        
     }
 }
 
