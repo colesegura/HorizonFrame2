@@ -66,6 +66,11 @@ struct SettingsView: View {
                         Button("Show Onboarding Again") {
                             showOnboarding = true
                         }
+                        
+                        Button("Sign Out") {
+                            signOut()
+                        }
+                        .foregroundColor(.red)
                     }
                     
                     Section(header: Text("Legal").foregroundColor(.gray)) {
@@ -120,10 +125,37 @@ struct SettingsView: View {
         
         rootVC.present(activityVC, animated: true, completion: nil)
     }
+    
+    private func signOut() {
+        // Reset user authentication state
+        UserDefaults.standard.set(false, forKey: "isExistingUser")
+        
+        // Show confirmation alert
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        
+        let alert = UIAlertController(
+            title: "Signed Out",
+            message: "You have been signed out successfully. The app will restart to apply changes.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+            // Reset app state and show onboarding
+            self.showOnboarding = true
+            
+            // Post notification to restart app flow
+            NotificationCenter.default.post(name: .userDidSignOut, object: nil)
+        })
+        
+        rootVC.present(alert, animated: true)
+    }
 }
 
-
-
+// Extension to define notification names
+extension Notification.Name {
+    static let userDidSignOut = Notification.Name("userDidSignOut")
+}
 
 #Preview {
     SettingsView()

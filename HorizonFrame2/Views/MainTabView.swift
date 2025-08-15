@@ -28,6 +28,13 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView(showOnboarding: $showOnboarding)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .userDidSignOut)) { _ in
+            // Reset to first tab
+            selectedTab = 0
+            
+            // Show onboarding
+            showOnboarding = true
+        }
     }
 }
 

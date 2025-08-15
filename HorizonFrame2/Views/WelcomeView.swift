@@ -53,7 +53,7 @@ struct WelcomeView: View {
                         },
                         onCompletion: { result in
                             switch result {
-                            case .success(let authResults):
+                            case .success(_):
                                 // Handle successful authorization
                                 print("Apple Sign In successful")
                                 isAuthenticated = true
