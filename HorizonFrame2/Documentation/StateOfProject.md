@@ -1,6 +1,6 @@
 {{ ... }}
 
-## 7-18-25
+## 8-16-25
 
 ### Overview of HorizonFrame
 
@@ -9,6 +9,9 @@
 
 **Target Audience:**  
 The app caters to individuals seeking personal growth, clarity, and daily structure, particularly those interested in mindfulness practices and goal setting. It’s designed for users who value simplicity, elegance, and a distraction-free experience.
+
+**Recent Updates:**  
+The app has undergone significant enhancements, including a comprehensive redesign of the Progress Page with goal cards, progress metrics, milestone celebrations, and calendar heatmap components. The visualization prompt has been revised to encourage users to add more detailed descriptions of their future state after achieving their goals.
 
 ### Core Functionality and User Experience
 
@@ -42,7 +45,7 @@ The app caters to individuals seeking personal growth, clarity, and daily struct
    - **Purpose:** The core mindfulness experience, guiding users through a multi-step process.
    - **Steps:**
      1. **Breathing (`BreathingView.swift`):** A calming animation with a circular timer (pie-chart style fill) that counts down the selected duration, guiding deep breathing.
-     2. **Visualization (`VisualizationView.swift`):** Users focus on each goal sequentially for 90 seconds, visualizing achievement, with a progress timer and navigation to the next goal or completion.
+     2. **Visualization (`VisualizationView.swift`):** Users focus on each goal sequentially for 90 seconds, visualizing achievement with detailed descriptions of what their life will look like after achieving the goal, with a progress timer and navigation to the next goal or completion.
      3. **Completion (`CompletionView.swift`):** A celebratory screen confirming the day’s alignment, updating streak count, and checking for award unlocks.
    - **Immersive Design:** Hides the tab bar during the flow for a distraction-free experience.
    - **User Impact:** Combines mindfulness with goal focus, creating a powerful daily ritual in just a few minutes.
@@ -52,15 +55,20 @@ The app caters to individuals seeking personal growth, clarity, and daily struct
    - **Features:**
      - List of user-defined goals (`Goal.swift` model) with reorder and delete functionality.
      - Input field to add new focuses, triggering award checks on creation.
-     - Increased bottom padding to ensure input isn’t obscured by the custom tab bar.
-   - **User Impact:** Empowers users to clarify intentions and maintain a dynamic goal list.
+     - Dropdown for each goal allowing users to edit detailed descriptions of what their life will look like after achieving the goal.
+     - Increased bottom padding to ensure input isn't obscured by the custom tab bar.
+   - **User Impact:** Empowers users to clarify intentions, maintain a dynamic goal list, and refine their vision of success.
 
 6. **Progress Tab (`ProgressView.swift`):**
-   - **Purpose:** Visualizes user consistency and achievements.
+   - **Purpose:** Visualizes user consistency and achievements with an emotionally engaging design.
    - **Features:**
-     - Displays current streak, total alignments, and a calendar heatmap of activity.
-     - Navigation link to Awards View (`AwardsView.swift`) showing a grid of locked/unlocked badges.
-   - **User Impact:** Motivates users by showcasing tangible progress and rewarding consistency.
+     - Redesigned header with motivational text and progress ring that changes color based on progress.
+     - Statistics dashboard showing current streak, entries this week, active goals, and consistency metrics.
+     - Goal cards section displaying up to three active goals with progress bars, day counters, streaks, and time remaining.
+     - Milestones section with horizontally scrollable cards showing unlocked and locked achievements.
+     - Calendar heatmap of activity with month navigation.
+     - Awards section showing a grid of locked/unlocked badges.
+   - **User Impact:** Motivates users by showcasing tangible progress, celebrating milestones, and providing forward-looking visualizations of their journey.
 
 7. **Awards System (`Award.swift`, `UnlockedAward.swift`, `AwardManager.swift`):**
    - **Purpose:** Gamifies engagement with achievement badges.
@@ -124,6 +132,8 @@ The app caters to individuals seeking personal growth, clarity, and daily struct
 
 - **Feature-Complete:** All core features (onboarding, alignment flow, goal management, progress tracking, awards, settings) are implemented and polished.
 - **UI Consistency:** Dark minimalist theme, unified timer animations, immersive flow with hidden tab bar.
+- **Progress Page Redesign:** Completed comprehensive redesign with goal cards, statistics dashboard, milestones section, and calendar heatmap for a more emotionally engaging experience.
+- **Goal Visualization Enhancement:** Updated prompt to encourage users to add detailed descriptions of their future state after achieving goals. Dropdown UI for editing these details is planned.
 - **App Store Readiness:** Prepared for submission with screenshots, promotional text, and build upload guidance provided. TestFlight setup instructions are ready for beta testing.
 
 ### Guidance for New Developer Onboarding
@@ -148,6 +158,8 @@ To ensure a smooth transition for the new developer working on the next version 
    - **Debug Mode:** Use Xcode’s debugger to step through `goToNextGoal()` in `VisualizationView.swift` or notification scheduling in `NotificationManager.swift` to understand state transitions.
 
 4. **Potential Next Features for Version 2.0:**
+   - **Goal Details Dropdown:** Implement dropdown UI in the Focuses tab to allow users to edit detailed descriptions of what their life will look like after achieving each goal.
+   - **Progress Page Phase 2:** Implement advanced analytics and AI insights for deeper progress tracking.
    - **CloudKit Integration:** Expand referral system with backend tracking for code redemption and shared awards.
    - **Analytics:** Add optional usage tracking (with consent) to understand user behavior for future improvements.
    - **Accessibility Enhancements:** Improve VoiceOver support and dynamic type scaling for broader usability.

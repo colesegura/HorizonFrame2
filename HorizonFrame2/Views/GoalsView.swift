@@ -8,6 +8,8 @@ struct GoalsView: View {
     @State private var showingAddGoalView: Bool = false
     @State private var editingGoal: Goal? = nil
     @State private var editedGoalText: String = ""
+    @State private var editingGoalDetails: Goal? = nil
+    @State private var editedGoalDetails: String = ""
     @State private var addingActionItemTo: Goal? = nil
     @State private var newActionItemText: String = ""
 
@@ -80,6 +82,9 @@ struct GoalsView: View {
             .sheet(item: $editingGoal) { goal in
                 editGoalSheet(for: goal)
             }
+            .sheet(item: $editingGoalDetails) { goal in
+                editGoalDetailsSheet(for: goal)
+            }
             .sheet(item: $addingActionItemTo) { goal in
                 addActionItemSheet(for: goal)
             }
@@ -105,29 +110,53 @@ struct GoalsView: View {
                     .foregroundColor(isArchived ? .gray : .green)
             }
             
-            // Visualization (only for onboarding goals)
-            if let visualization = goal.visualization, !visualization.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+            // Goal details section (visualization or user vision)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    // Header with icon
                     HStack {
                         Image(systemName: "eye.fill")
                             .foregroundColor(.purple)
+                        Text("Goal Details")
                             .font(.caption)
-                        Text("Visualization")
-                            .font(.caption.bold())
                             .foregroundColor(.purple)
                     }
                     
-                    Text(visualization)
-                        .font(.subheadline)
-                        .foregroundColor(isArchived ? .gray.opacity(0.8) : .gray)
-                        .padding(.leading, 16)
-                        .italic()
+                    Spacer()
+                    
+                    // Edit button
+                    Button(action: {
+                        editingGoalDetails = goal
+                    }) {
+                        Image(systemName: "pencil.circle")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color.purple.opacity(0.1))
-                .cornerRadius(8)
+                
+                // Display goal details if available
+                if let details = goal.userVision, !details.isEmpty {
+                    Text(details)
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.9))
+                        .padding(.leading, 4)
+                } else if let visualization = goal.visualization, !visualization.isEmpty {
+                    Text(visualization)
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.9))
+                        .padding(.leading, 4)
+                } else {
+                    Text("Add details about what your life will look like having achieved this goal.")
+                        .font(.body.italic())
+                        .foregroundColor(.gray)
+                        .padding(.leading, 4)
+                }
             }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Color.purple.opacity(0.1))
+            .cornerRadius(8)
             
             // Action items
             if !goal.actionItems.isEmpty {
@@ -242,6 +271,44 @@ struct GoalsView: View {
     }
     
     @ViewBuilder
+    private func editGoalDetailsSheet(for goal: Goal) -> some View {
+        VStack(spacing: 20) {
+            Text("Edit Goal Details")
+                .font(.headline)
+            
+            Text("Add as many details as possible that describe what your life will look like having achieved this goal.")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            TextEditor(text: $editedGoalDetails)
+                .frame(minHeight: 150)
+                .padding(4)
+                .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
+            
+            HStack {
+                Button("Cancel") {
+                    editingGoalDetails = nil
+                }
+                .buttonStyle(.bordered)
+                
+                Spacer()
+                
+                Button("Save") {
+                    saveGoalDetails(for: goal)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .onAppear {
+            editedGoalDetails = goal.userVision ?? ""
+        }
+        .presentationDetents([.medium])
+    }
+    
+    @ViewBuilder
     private func addActionItemSheet(for goal: Goal) -> some View {
         VStack(spacing: 20) {
             Text("Add Action Item")
@@ -324,6 +391,12 @@ struct GoalsView: View {
         for (index, goal) in active.enumerated() {
             goal.order = index
         }
+    }
+    
+    private func saveGoalDetails(for goal: Goal) {
+        goal.userVision = editedGoalDetails.trimmingCharacters(in: .whitespacesAndNewlines)
+        try? modelContext.save()
+        editingGoalDetails = nil
     }
     
     private func alignmentCount(for goal: Goal) -> Int {

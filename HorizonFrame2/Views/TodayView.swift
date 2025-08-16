@@ -46,13 +46,13 @@ struct TodayView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(height: 30)
-                            .opacity(showButton ? 1 : 0) // Show with same animation timing
                         
                         Spacer()
                         UpgradeButton()
                         StreakCounterView()
                     }
-                    .opacity(showButton ? 1 : 0) // Hide until animation completes
+                    // Only show header when the Begin Alignment button appears
+                    .opacity(showButton ? 1 : 0)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     
