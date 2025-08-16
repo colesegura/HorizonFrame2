@@ -205,6 +205,9 @@ struct GoalRowView: View {
     let timeRemaining: Double
     let index: Int
     
+    // Define the gray color explicitly
+    private let grayColor = Color(UIColor(red: 0x7e/255.0, green: 0x7e/255.0, blue: 0x7e/255.0, alpha: 1.0))
+    
     var body: some View {
         HStack(spacing: 16) {
             if isActive {
@@ -215,7 +218,7 @@ struct GoalRowView: View {
             
             Text(goal.text)
                 .font(.system(size: isActive ? 20 : 15, weight: isActive ? .bold : .regular))
-                .foregroundColor(isActive ? .white : Color(hex: "7e7e7e"))
+                .foregroundColor(isActive ? .white : grayColor)
                 .animation(.easeInOut, value: isActive)
             
             Spacer()

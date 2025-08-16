@@ -12,9 +12,50 @@ struct GoalsView: View {
     @State private var editedGoalDetails: String = ""
     @State private var addingActionItemTo: Goal? = nil
     @State private var newActionItemText: String = ""
-
-    private var activeGoals: [Goal] { goals.filter { !$0.isArchived } }
-    private var archivedGoals: [Goal] { goals.filter { $0.isArchived } }
+    
+    // New state variables for redesigned UI
+    @State private var selectedCategory: GoalCategory = .active
+    @State private var expandedGoals: Set<String> = []
+    @State private var userName: String? = UserDefaults.standard.string(forKey: "userName")
+    
+    // Computed properties for categorized goals
+    private var activeGoals: [Goal] { 
+        goals.filter { !$0.isArchived && $0.goalCategory == .active } 
+    }
+    private var upcomingGoals: [Goal] { 
+        goals.filter { !$0.isArchived && $0.goalCategory == .upcoming } 
+    }
+    private var completedGoals: [Goal] { 
+        goals.filter { !$0.isArchived && $0.goalCategory == .completed } 
+    }
+    private var archivedGoals: [Goal] { 
+        goals.filter { $0.isArchived } 
+    }
+    
+    // Category counts for badges
+    private var categoryCounts: [GoalCategory: Int] {
+        [
+            .active: activeGoals.count,
+            .upcoming: upcomingGoals.count,
+            .completed: completedGoals.count
+        ]
+    }
+    
+    // Next deadline in days
+    private var nextDeadlineDays: Int? {
+        let activeAndUpcomingGoals = goals.filter { !$0.isArchived }
+        guard !activeAndUpcomingGoals.isEmpty else { return nil }
+        
+        let today = Calendar.current.startOfDay(for: Date())
+        let futureDates = activeAndUpcomingGoals.compactMap { goal -> Int? in
+            guard let targetDate = goal.targetDate else { return nil }
+            let targetDay = Calendar.current.startOfDay(for: targetDate)
+            let components = Calendar.current.dateComponents([.day], from: today, to: targetDay)
+            return components.day
+        }.filter { $0 > 0 }
+        
+        return futureDates.min()
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,32 +63,49 @@ struct GoalsView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Define your goals and intentions. These are the outcomes you want to align with each day.")
-                            .font(.body)
-                            .foregroundColor(.gray)
-                    }
-                    .padding([.top, .horizontal])
+                    // Personalized header
+                    PersonalizedHeaderView(
+                        activeGoalCount: activeGoals.count + upcomingGoals.count,
+                        nextDeadlineDays: nextDeadlineDays,
+                        userName: userName
+                    )
                     
-                    List {
-                        if !activeGoals.isEmpty {
-                            Section(header: Text("Active Goals").foregroundColor(.white)) {
-                                ForEach(activeGoals) { goal in
-                                    goalRow(for: goal, isArchived: false)
-                                }
+                    // Category tabs
+                    GoalCategoryTabView(
+                        selectedCategory: $selectedCategory,
+                        categoryCounts: categoryCounts
+                    )
+                    .padding(.top, 8)
+                    
+                    // Goals list
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            // Display goals based on selected category
+                            ForEach(goalsForSelectedCategory()) { goal in
+                                GoalCardView(
+                                    goal: goal,
+                                    isPrimary: goal.isPrimary,
+                                    isExpanded: expandedBinding(for: goal),
+                                    onPrimaryToggle: { isPrimary in togglePrimaryGoal(goal, isPrimary: isPrimary) },
+                                    onEdit: { editingGoal = goal },
+                                    onQuickEntry: { addQuickEntry(for: goal) },
+                                    onContinueJourney: { continueJourney(for: goal) }
+                                )
+                                .padding(.horizontal)
+                                .transition(.opacity)
                             }
-                        }
-
-                        if !archivedGoals.isEmpty {
-                            Section(header: Text("Archived Goals").foregroundColor(.gray)) {
-                                ForEach(archivedGoals) { goal in
-                                    goalRow(for: goal, isArchived: true)
-                                }
+                            
+                            // Empty state
+                            if goalsForSelectedCategory().isEmpty {
+                                emptyStateView(for: selectedCategory)
+                                    .padding(.top, 40)
                             }
+                            
+                            // Space at bottom for add button
+                            Spacer(minLength: 100)
                         }
+                        .padding(.top, 8)
                     }
-                    .listStyle(.plain)
-                    .navigationTitle("Goals")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             HStack(spacing: 12) {
@@ -57,26 +115,20 @@ struct GoalsView: View {
                         }
                     }
                     
-                    // Add Goal Button
-                    Button(action: {
-                        showingAddGoalView = true
-                    }) {
+                    // Floating add button
+                    VStack {
+                        Spacer()
                         HStack {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                            Text("Add Goal")
-                                .font(.headline)
+                            Spacer()
+                            MinimalistAddButton(action: {
+                                showingAddGoalView = true
+                            })
+                            .padding(.trailing, 24)
+                            .padding(.bottom, 16)
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.purple)
-                        .cornerRadius(10)
                     }
-                    .padding()
-                    .background(Color.black)
                 }
-                .padding(.bottom, 100) // Prevents tab bar from overlapping
+                .padding(.bottom, 80) // Prevents tab bar from overlapping
             }
             .preferredColorScheme(.dark)
             .sheet(item: $editingGoal) { goal in
@@ -94,6 +146,100 @@ struct GoalsView: View {
         }
     }
     
+    // Helper methods for the redesigned UI
+    
+    private func goalsForSelectedCategory() -> [Goal] {
+        switch selectedCategory {
+        case .active:
+            return activeGoals
+        case .upcoming:
+            return upcomingGoals
+        case .completed:
+            return completedGoals
+        }
+    }
+    
+    private func expandedBinding(for goal: Goal) -> Binding<Bool> {
+        Binding(
+            get: { expandedGoals.contains(String(describing: goal.id)) },
+            set: { isExpanded in
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    if isExpanded {
+                        expandedGoals.insert(String(describing: goal.id))
+                    } else {
+                        expandedGoals.remove(String(describing: goal.id))
+                    }
+                }
+            }
+        )
+    }
+    
+    private func togglePrimaryGoal(_ goal: Goal, isPrimary: Bool) {
+        // If setting as primary, unset any other primary goals
+        if isPrimary {
+            for otherGoal in goals where otherGoal.isPrimary {
+                otherGoal.isPrimary = false
+            }
+        }
+        
+        goal.isPrimary = isPrimary
+        try? modelContext.save()
+        
+        // Add haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+    }
+    
+    private func addQuickEntry(for goal: Goal) {
+        // Navigate to quick entry form or journal
+        // This would typically navigate to a journal entry form
+        // For now, we'll just open the goal details
+        editingGoalDetails = goal
+    }
+    
+    private func continueJourney(for goal: Goal) {
+        // Navigate to alignment flow for this goal
+        // This would typically start the daily alignment flow
+        // For now, we'll just open the goal details
+        editingGoalDetails = goal
+    }
+    
+    @ViewBuilder
+    private func emptyStateView(for category: GoalCategory) -> some View {
+        VStack(spacing: 24) {
+            Image(systemName: category.emptyStateIcon)
+                .font(.system(size: 60))
+                .foregroundColor(.gray.opacity(0.6))
+            
+            Text(category.emptyStateMessage)
+                .font(.headline)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            
+            Button(action: {
+                showingAddGoalView = true
+            }) {
+                Text("Add Your First Goal")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue, Color.purple]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+    
+    // Legacy methods for backward compatibility
     @ViewBuilder
     private func goalRow(for goal: Goal, isArchived: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -416,13 +562,26 @@ struct GoalsView: View {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: Goal.self, ActionItem.self, DailyAlignment.self, configurations: config)
 
-        // Add sample data
-        let goal1 = Goal(text: "I earn $10,000 per month.", order: 0)
-        let goal2 = Goal(text: "I have a loving relationship.", order: 1)
-        let goal3 = Goal(text: "I have supportive friends.", order: 2, isArchived: true)
+        // Add sample data with new properties
+        let goal1 = Goal(text: "I earn $10,000 per month.", order: 0, isPrimary: true, category: GoalCategory.active)
+        goal1.userVision = "I'm sitting at my desk, looking at my bank account balance showing a $10,000 deposit for the month. I feel financially secure and proud of my accomplishments."
+        
+        let goal2 = Goal(text: "I have a loving relationship.", order: 1, isPrimary: false, category: GoalCategory.active)
+        goal2.userVision = "We're holding hands walking along the beach at sunset, laughing and planning our future together."
+        
+        let goal3 = Goal(text: "I have supportive friends.", order: 2, isPrimary: false, category: GoalCategory.upcoming)
+        goal3.userVision = "We're gathered for dinner at my place, sharing stories and supporting each other through life's challenges."
+        
+        let goal4 = Goal(text: "I completed my certification.", order: 3, isPrimary: false, category: GoalCategory.completed)
+        goal4.userVision = "I'm holding my certificate, feeling accomplished and ready for new opportunities."
+        
+        let goal5 = Goal(text: "I moved to a new city.", order: 4, isArchived: true)
+        
         container.mainContext.insert(goal1)
         container.mainContext.insert(goal2)
         container.mainContext.insert(goal3)
+        container.mainContext.insert(goal4)
+        container.mainContext.insert(goal5)
         
         // Add sample action items
         let actionItem1 = ActionItem(text: "Create a business plan", order: 0, goal: goal1)

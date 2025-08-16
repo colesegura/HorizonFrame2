@@ -26,8 +26,13 @@ class OnboardingDataManager: ObservableObject {
         let newGoal = Goal(
             text: onboardingGoal,
             order: 0, // Place at top
+            targetDate: nil, // No target date from onboarding
+            isArchived: false,
             visualization: onboardingVisualization,
-            isFromOnboarding: true
+            isFromOnboarding: true,
+            userVision: nil, // User vision can be added later
+            isPrimary: false, // Not primary by default
+            category: .active
         )
         
         modelContext.insert(newGoal)

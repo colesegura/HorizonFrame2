@@ -106,7 +106,7 @@ struct CalendarMonthView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(hex: "1A1A2E").opacity(0.5))
+                .fill(Color(UIColor(red: 0x1A/255.0, green: 0x1A/255.0, blue: 0x2E/255.0, alpha: 0.5)))
         )
     }
     

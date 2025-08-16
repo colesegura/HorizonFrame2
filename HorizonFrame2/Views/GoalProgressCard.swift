@@ -62,6 +62,14 @@ struct GoalProgressCard: View {
         }
     }
     
+    private var strokeColor: Color {
+        progressColor.opacity(0.5)
+    }
+    
+    // Define background gradient colors explicitly
+    private let darkBlue1 = Color(UIColor(red: 0x1A/255.0, green: 0x1A/255.0, blue: 0x2E/255.0, alpha: 1.0))
+    private let darkBlue2 = Color(UIColor(red: 0x16/255.0, green: 0x21/255.0, blue: 0x3E/255.0, alpha: 1.0))
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Goal header with icon and text
@@ -70,7 +78,7 @@ struct GoalProgressCard: View {
                 Text("🎯")
                     .font(.system(size: 24))
                     .padding(8)
-                    .background(Circle().fill(Color(hex: "1A1A2E")))
+                    .background(Circle().fill(darkBlue1))
                 
                 // Goal text
                 Text(goal.text)
@@ -155,14 +163,14 @@ struct GoalProgressCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(LinearGradient(
-                    gradient: Gradient(colors: [Color(hex: "1A1A2E"), Color(hex: "16213E")]),
+                    gradient: Gradient(colors: [darkBlue1, darkBlue2]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(progressColor.opacity(0.5), lineWidth: 1)
+                .stroke(strokeColor, lineWidth: 1)
         )
     }
     
@@ -204,7 +212,7 @@ struct GoalProgressCard_Previews: PreviewProvider {
         let container = try! ModelContainer(for: Goal.self, DailyAlignment.self, configurations: config)
         
         // Create a sample goal
-        let goal = Goal(text: "Meditate Daily", order: 0)
+        let goal = Goal(text: "Meditate Daily", order: 0, targetDate: Calendar.current.date(byAdding: .day, value: 30, to: .now)!, isArchived: false, visualization: nil, isFromOnboarding: false, userVision: nil, isPrimary: true, category: .active)
         
         // Add some sample alignments
         for i in 0..<5 {
