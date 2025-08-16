@@ -61,7 +61,9 @@ struct TimelineView: View {
         var currentDate = Calendar.current.startOfDay(for: .now)
         
         for date in sortedDates {
-            if Calendar.current.isDate(date, inSameDayAs: currentDate) {
+            // Compare dates manually instead of using isDate(_:inSameDayAs:)
+            let dateDay = Calendar.current.startOfDay(for: date)
+            if dateDay == currentDate {
                 currentStreak += 1
                 currentDate = Calendar.current.date(byAdding: .day, value: -1, to: currentDate)!
             } else {

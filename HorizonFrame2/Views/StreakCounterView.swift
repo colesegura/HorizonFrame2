@@ -8,11 +8,19 @@ struct StreakCounterView: View {
         var streak = 0
         let sortedDates = alignments.map { $0.date }.sorted { $0 > $1 }
         let today = Calendar.current.startOfDay(for: .now)
-        let hasAlignedToday = alignments.contains { Calendar.current.isDate($0.date, inSameDayAs: today) }
+        
+        // Check if aligned today without using isDate(_:inSameDayAs:)
+        let hasAlignedToday = alignments.contains { alignment in
+            let alignmentDay = Calendar.current.startOfDay(for: alignment.date)
+            return alignmentDay == today
+        }
+        
         var currentDate = hasAlignedToday ? today : Calendar.current.date(byAdding: .day, value: -1, to: today)!
         
         for date in sortedDates {
-            if Calendar.current.isDate(date, inSameDayAs: currentDate) {
+            // Compare dates manually instead of using isDate(_:inSameDayAs:)
+            let dateDay = Calendar.current.startOfDay(for: date)
+            if dateDay == currentDate {
                 streak += 1
                 currentDate = Calendar.current.date(byAdding: .day, value: -1, to: currentDate)!
             } else {

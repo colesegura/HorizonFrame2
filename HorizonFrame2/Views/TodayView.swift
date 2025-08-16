@@ -147,7 +147,9 @@ struct TodayView: View {
                 )
             }
             .navigationDestination(isPresented: $showCompletion) {
-                CompletionView(alignedGoals: completedGoals)
+                CompletionView(alignedGoals: completedGoals, onDismiss: {
+                    // Handle dismissal if needed
+                })
             }
             .navigationDestination(isPresented: $showDayDetail) {
                 if let date = selectedDayForDetail {

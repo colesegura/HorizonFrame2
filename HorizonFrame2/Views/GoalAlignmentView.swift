@@ -10,7 +10,7 @@ struct GoalAlignmentView: View {
     let onComplete: () -> Void // Closure to call when alignment is complete
     
     @State private var journalResponse: String = ""
-    @State private var showingCompletionAlert: Bool = false
+    @State private var showingCompletionView: Bool = false
     
     // Access AIPromptService through environment
     @EnvironmentObject private var aiService: AIPromptService
@@ -100,13 +100,12 @@ struct GoalAlignmentView: View {
             .preferredColorScheme(.dark)
 
 
-            .alert("Alignment Complete", isPresented: $showingCompletionAlert) {
-                Button("Continue") {
-                    // Call the onComplete closure to move to the next goal
+            .fullScreenCover(isPresented: $showingCompletionView) {
+                CompletionView(alignedGoals: [goal]) {
+                    // When CompletionView is dismissed, call onComplete to move to next goal
+                    showingCompletionView = false
                     onComplete()
                 }
-            } message: {
-                Text("Your journal entry has been saved. Keep aligning with your goals daily for best results.")
             }
         }
     }
@@ -126,10 +125,51 @@ struct GoalAlignmentView: View {
         )
         
         modelContext.insert(entry)
-        try? modelContext.save()
         
-        // Show completion alert
-        showingCompletionAlert = true
+        // Create or update today's alignment record
+        let today = Calendar.current.startOfDay(for: .now)
+        
+        // Check if today's alignment already exists
+        // We need to use start and end of day for comparison since isDate(_:inSameDayAs:) isn't supported in predicates
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        let fetchDescriptor = FetchDescriptor<DailyAlignment>(
+            predicate: #Predicate { alignment in
+                alignment.date >= startOfDay && alignment.date < endOfDay
+            }
+        )
+        
+        do {
+            let existingAlignments = try modelContext.fetch(fetchDescriptor)
+            
+            if let existingAlignment = existingAlignments.first {
+                // Add this goal to the existing alignment if not already included
+                if !existingAlignment.goals.contains(where: { $0.id == goal.id }) {
+                    existingAlignment.goals.append(goal)
+                    print("[DEBUG] Added goal \(goal.text) to existing alignment")
+                }
+            } else {
+                // Create a new alignment for today with this goal
+                let newAlignment = DailyAlignment(date: today, completed: true, goals: [goal])
+                modelContext.insert(newAlignment)
+                print("[DEBUG] Created new alignment with goal \(goal.text)")
+            }
+            
+            try modelContext.save()
+            
+            // Debug: print all alignments and their goals after saving
+            let allAlignments = try modelContext.fetch(FetchDescriptor<DailyAlignment>())
+            print("[DEBUG] All alignments after save:")
+            for a in allAlignments {
+                print("[DEBUG] alignment: \(a.date) completed: \(a.completed) goals: \(a.goals.map { $0.text })")
+            }
+        } catch {
+            print("[ERROR] Failed to save alignment: \(error)")
+        }
+        
+        // Show completion view
+        showingCompletionView = true
     }
 }
 

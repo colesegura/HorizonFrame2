@@ -5,6 +5,7 @@ struct CompletionView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \DailyAlignment.date, order: .reverse) private var alignments: [DailyAlignment]
     let alignedGoals: [Goal] // The goals that were part of this alignment
+    let onDismiss: () -> Void // Closure to call when dismissed
     
     @Environment(\.dismiss) private var dismiss
     @State private var streakCount = 0
@@ -38,7 +39,10 @@ struct CompletionView: View {
                     Spacer()
                     HStack {
                         Spacer()
-                        Button(action: { dismiss() }) {
+                        Button(action: {
+                            dismiss()
+                            onDismiss()
+                        }) {
                             ZStack {
                                 Circle().fill(Color.white).frame(width: 60, height: 60)
                                 Image(systemName: "xmark")
@@ -58,22 +62,8 @@ struct CompletionView: View {
     }
     
     private func completeAlignment() {
-        let today = Calendar.current.startOfDay(for: .now)
-        
-        // Check if today's alignment is already saved
-        if !alignments.contains(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
-            // Use the alignedGoals passed from the current session
-            let newAlignment = DailyAlignment(date: today, completed: true, goals: alignedGoals)
-            modelContext.insert(newAlignment)
-            try? modelContext.save()
-            // Debug: print all alignments and their goals after saving
-            let allAlignments = (try? modelContext.fetch(FetchDescriptor<DailyAlignment>())) ?? []
-            print("[DEBUG] All alignments after save:")
-            for a in allAlignments {
-                print("[DEBUG] alignment: \(a.date) completed: \(a.completed) goals: \(a.goals.map { $0.text })")
-            }
-        }
-        
+        // We no longer need to create alignments here since they're created in GoalAlignmentView
+        // Just calculate the streak for display
         calculateStreak()
         
         // Check for awards
@@ -89,7 +79,9 @@ struct CompletionView: View {
         var currentDate = Calendar.current.startOfDay(for: .now)
 
         for alignment in sortedAlignments {
-            if Calendar.current.isDate(alignment.date, inSameDayAs: currentDate) {
+            // Compare dates manually instead of using isDate(_:inSameDayAs:)
+            let alignmentDay = Calendar.current.startOfDay(for: alignment.date)
+            if alignmentDay == currentDate {
                 currentStreak += 1
                 currentDate = Calendar.current.date(byAdding: .day, value: -1, to: currentDate)!
             } else {
@@ -135,7 +127,14 @@ struct DayCircleView: View {
     }
     
     private var isCompleted: Bool {
-        alignments.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
+        // Compare dates manually instead of using isDate(_:inSameDayAs:)
+        let dayStart = Calendar.current.startOfDay(for: date)
+        let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart)!
+        
+        return alignments.contains { alignment in
+            let alignmentDate = alignment.date
+            return alignmentDate >= dayStart && alignmentDate < dayEnd
+        }
     }
     
     private var dayAbbreviation: String {
@@ -179,7 +178,7 @@ struct DayCircleView: View {
         let today = Calendar.current.startOfDay(for: .now)
         container.mainContext.insert(DailyAlignment(date: today, completed: true, goals: [sampleGoal1]))
 
-        return CompletionView(alignedGoals: [sampleGoal1, sampleGoal2])
+        return CompletionView(alignedGoals: [sampleGoal1, sampleGoal2], onDismiss: {})
             .modelContainer(container)
             .background(Color.black)
     })()
