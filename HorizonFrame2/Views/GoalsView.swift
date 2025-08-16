@@ -5,7 +5,7 @@ struct GoalsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Goal.order) private var goals: [Goal]
     @Query private var alignments: [DailyAlignment] // Fetch all alignments
-    @State private var newGoalText: String = ""
+    @State private var showingAddGoalView: Bool = false
     @State private var editingGoal: Goal? = nil
     @State private var editedGoalText: String = ""
     @State private var addingActionItemTo: Goal? = nil
@@ -55,21 +55,21 @@ struct GoalsView: View {
                         }
                     }
                     
-                    // Input field
-                    HStack(spacing: 12) {
-                        TextField("Add a new goal...", text: $newGoalText, onCommit: addGoal)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .padding(10)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                            .foregroundColor(.white)
-                        
-                        Button(action: addGoal) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.white)
+                    // Add Goal Button
+                    Button(action: {
+                        showingAddGoalView = true
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                            Text("Add Goal")
+                                .font(.headline)
                         }
-                        .disabled(newGoalText.isEmpty)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.purple)
+                        .cornerRadius(10)
                     }
                     .padding()
                     .background(Color.black)
@@ -82,6 +82,9 @@ struct GoalsView: View {
             }
             .sheet(item: $addingActionItemTo) { goal in
                 addActionItemSheet(for: goal)
+            }
+            .sheet(isPresented: $showingAddGoalView) {
+                AddGoalView()
             }
         }
     }
@@ -265,14 +268,7 @@ struct GoalsView: View {
         .presentationDetents([.height(200)])
     }
 
-    private func addGoal() {
-        guard !newGoalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let newGoal = Goal(text: newGoalText, order: goals.count)
-        modelContext.insert(newGoal)
-        try? modelContext.save()
-        newGoalText = ""
-        checkFocusAwards()
-    }
+    // Note: Goal creation is now handled in AddGoalView
     
     private func addActionItem(to goal: Goal) {
         guard !newActionItemText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }

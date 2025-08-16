@@ -29,9 +29,22 @@
 		F40156102E2577CC001795E8 /* HorizonFrame2UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HorizonFrame2UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F46A76182E5008BA00B6350B /* Exceptions for "HorizonFrame2" folder in "HorizonFrame2" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F40155F52E2577CB001795E8 /* HorizonFrame2 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F40155F82E2577CB001795E8 /* HorizonFrame2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F46A76182E5008BA00B6350B /* Exceptions for "HorizonFrame2" folder in "HorizonFrame2" target */,
+			);
 			path = HorizonFrame2;
 			sourceTree = "<group>";
 		};
@@ -271,6 +284,8 @@
 /* Begin XCBuildConfiguration section */
 		F40156182E2577CC001795E8 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = F40155F82E2577CB001795E8 /* HorizonFrame2 */;
+			baseConfigurationReferenceRelativePath = Config/Secrets.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -334,6 +349,8 @@
 		};
 		F40156192E2577CC001795E8 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = F40155F82E2577CB001795E8 /* HorizonFrame2 */;
+			baseConfigurationReferenceRelativePath = Config/Secrets.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -390,6 +407,8 @@
 		};
 		F401561B2E2577CC001795E8 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = F40155F82E2577CB001795E8 /* HorizonFrame2 */;
+			baseConfigurationReferenceRelativePath = Config/Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -400,6 +419,7 @@
 				DEVELOPMENT_TEAM = F34CVJH6L3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HorizonFrame2/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HorizonFrame;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -423,6 +443,8 @@
 		};
 		F401561C2E2577CC001795E8 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = F40155F82E2577CB001795E8 /* HorizonFrame2 */;
+			baseConfigurationReferenceRelativePath = Config/Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -433,6 +455,7 @@
 				DEVELOPMENT_TEAM = F34CVJH6L3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HorizonFrame2/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HorizonFrame;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

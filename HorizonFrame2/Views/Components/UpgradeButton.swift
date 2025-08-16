@@ -10,18 +10,12 @@ struct UpgradeButton: View {
                 showPaywall = true
             }) {
                 Text("Upgrade")
-                    .font(.system(.caption, design: .rounded).bold())
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        LinearGradient(
-                            colors: [.yellow, .orange],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(12)
+                    .font(.system(.headline, design: .rounded).bold())
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(20)
             }
             .buttonStyle(PlainButtonStyle())
             .sheet(isPresented: $showPaywall) {

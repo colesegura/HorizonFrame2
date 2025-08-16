@@ -4,6 +4,7 @@ import SwiftData
 struct DayDetailView: View {
     @State var selectedDate: Date
     @Query private var allAlignments: [DailyAlignment]
+    @Query private var allJournalEntries: [JournalEntry]
     private let calendar = Calendar.current
     
     init(selectedDate: Date) {
@@ -11,11 +12,20 @@ struct DayDetailView: View {
         // Filter alignments to only include the selected date
         let startOfDay = calendar.startOfDay(for: selectedDate)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
         self._allAlignments = Query(FetchDescriptor<DailyAlignment>(
             predicate: #Predicate { alignment in
                 alignment.date >= startOfDay && alignment.date < endOfDay
             },
             sortBy: [SortDescriptor(\DailyAlignment.date, order: .reverse)]
+        ))
+        
+        // Filter journal entries to only include the selected date
+        self._allJournalEntries = Query(FetchDescriptor<JournalEntry>(
+            predicate: #Predicate { entry in
+                entry.date >= startOfDay && entry.date < endOfDay
+            },
+            sortBy: [SortDescriptor(\JournalEntry.date, order: .reverse)]
         ))
     }
     
@@ -47,41 +57,94 @@ struct DayDetailView: View {
                     }
                     .padding(.top, 20)
                     
-                    if let alignment = alignmentForSelectedDate {
-                        if alignment.completed {
-                            Text("Alignment Completed")
-                                .font(.title2)
-                                .foregroundColor(.green)
-                            if !alignment.goals.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("Goals aligned with:")
+                    // Show journal entries for the selected date
+                    let journalEntries = journalEntriesForSelectedDate
+                    
+                    if !journalEntries.isEmpty {
+                        Text("\(journalEntries.count) Alignment\(journalEntries.count > 1 ? "s" : "") Completed")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                            
+                        ForEach(journalEntries) { entry in
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text(entry.goal?.text ?? "Goal")
                                         .font(.headline)
                                         .foregroundColor(.white)
-                                    ForEach(alignment.goals, id: \.id) { goal in
-                                        HStack {
-                                            Text(goal.text)
-                                                .font(.body)
-                                                .foregroundColor(.white)
-                                                .padding(8)
-                                                .background(Color.gray.opacity(0.2))
-                                                .cornerRadius(10)
-                                            Spacer()
-                                            Text("\(alignmentCount(for: goal)) \(alignmentCount(for: goal) == 1 ? "day" : "days") aligned")
-                                                .font(.caption)
-                                                .foregroundColor(.green)
-                                        }
+                                    
+                                    Spacer()
+                                    
+                                    Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Prompt:")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    
+                                    Text(entry.prompt)
+                                        .font(.body)
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.purple.opacity(0.2))
+                                        .cornerRadius(10)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Response:")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    
+                                    Text(entry.response)
+                                        .font(.body)
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.gray.opacity(0.2))
+                                        .cornerRadius(10)
+                                }
+                            }
+                            .padding()
+                            .background(Color.black.opacity(0.3))
+                            .cornerRadius(12)
+                            .padding(.vertical, 8)
+                        }
+                    } else if let alignment = alignmentForSelectedDate, alignment.completed {
+                        Text("Alignment Completed")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                        if !alignment.goals.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Goals aligned with:")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                ForEach(alignment.goals, id: \.id) { goal in
+                                    HStack {
+                                        Text(goal.text)
+                                            .font(.body)
+                                            .foregroundColor(.white)
+                                            .padding(8)
+                                            .background(Color.gray.opacity(0.2))
+                                            .cornerRadius(10)
+                                        Spacer()
+                                        Text("\(alignmentCount(for: goal)) \(alignmentCount(for: goal) == 1 ? "day" : "days") aligned")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
                                     }
                                 }
-                                .padding(.top, 10)
-                            } else {
-                                Text("No goals recorded for this day.")
-                                    .foregroundColor(.gray)
                             }
+                            .padding(.top, 10)
                         } else {
-                            Text("Alignment Started but Not Completed")
-                                .font(.title2)
-                                .foregroundColor(.yellow)
+                            Text("No goals recorded for this day.")
+                                .foregroundColor(.gray)
                         }
+                    } else if let alignment = alignmentForSelectedDate, !alignment.completed {
+                        Text("Alignment Started but Not Completed")
+                            .font(.title2)
+                            .foregroundColor(.yellow)
                     } else {
                         Text("No alignment data for this day.")
                             .font(.title2)
@@ -115,6 +178,11 @@ struct DayDetailView: View {
         let startOfDay = calendar.startOfDay(for: selectedDate)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
         return allAlignments.first(where: { $0.date >= startOfDay && $0.date < endOfDay })
+    }
+    
+    // Computed property for journal entries for the selected date
+    private var journalEntriesForSelectedDate: [JournalEntry] {
+        return allJournalEntries
     }
     // Count how many days a goal has been aligned with (across all time)
     private func alignmentCount(for goal: Goal) -> Int {
