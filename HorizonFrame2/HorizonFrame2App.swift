@@ -18,25 +18,22 @@ struct HorizonFrame2App: App {
             DailyAlignment.self,
             UnlockedAward.self,
         ])
-        
-        // Try persistent storage first, fall back to in-memory if migration fails
-        let persistentConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        
+
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
         do {
-            return try ModelContainer(for: schema, configurations: [persistentConfiguration])
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            print("Failed to create persistent storage, falling back to in-memory: \(error)")
-            
-            // Fallback to in-memory storage
-            let memoryConfiguration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: true
-            )
+            // If creating the container fails, it's likely due to a migration issue.
+            // For development, we can delete the old store and try again.
+            print("Could not create ModelContainer, attempting to delete old store and recreate. Error: \(error)")
+            let storeURL = modelConfiguration.url.deletingLastPathComponent()
+            try? FileManager.default.removeItem(at: storeURL)
             
             do {
-                return try ModelContainer(for: schema, configurations: [memoryConfiguration])
+                return try ModelContainer(for: schema, configurations: [modelConfiguration])
             } catch {
-                fatalError("Could not create ModelContainer even with in-memory storage: \(error)")
+                fatalError("Failed to create ModelContainer after deleting old store: \(error)")
             }
         }
     }()

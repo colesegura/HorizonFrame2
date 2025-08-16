@@ -125,7 +125,7 @@ class AIPromptService: ObservableObject {
         return NetworkMonitor.shared.isConnected
     }
     
-    init(apiKey: String = APIConfig.getOpenAIAPIKey()) {
+    init(apiKey: String = APIConfig.openAIAPIKey) {
         if !apiKey.isEmpty && apiKey != "REPLACE_WITH_YOUR_API_KEY" {
             self.openAI = OpenAI(apiToken: apiKey)
         }

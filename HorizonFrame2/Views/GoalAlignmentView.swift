@@ -6,10 +6,11 @@ struct GoalAlignmentView: View {
     @Environment(\.dismiss) private var dismiss
     
     let goal: Goal
-    @State private var journalPrompt: String = "Loading your personalized prompt..."
+    let prompt: String // The prompt is now passed in directly.
+    let onComplete: () -> Void // Closure to call when alignment is complete
+    
     @State private var journalResponse: String = ""
     @State private var showingCompletionAlert: Bool = false
-    @State private var showingErrorAlert: Bool = false
     
     // Access AIPromptService through environment
     @EnvironmentObject private var aiService: AIPromptService
@@ -47,7 +48,7 @@ struct GoalAlignmentView: View {
                                 }
                             }
                             
-                            Text(journalPrompt)
+                            Text(prompt)
                                 .font(.body)
                                 .foregroundColor(.white)
                                 .padding()
@@ -97,23 +98,12 @@ struct GoalAlignmentView: View {
                 }
             }
             .preferredColorScheme(.dark)
-            .onAppear {
-                loadJournalPrompt()
-            }
-            .alert("Error", isPresented: $showingErrorAlert) {
-                Button("Try Again") {
-                    loadJournalPrompt()
-                }
-                Button("Use Offline Prompt") {
-                    journalPrompt = aiService.generateOfflinePrompt(for: goal)
-                    aiService.resetError()
-                }
-            } message: {
-                Text(aiService.errorMessage ?? "An unknown error occurred.")
-            }
+
+
             .alert("Alignment Complete", isPresented: $showingCompletionAlert) {
-                Button("OK") {
-                    dismiss()
+                Button("Continue") {
+                    // Call the onComplete closure to move to the next goal
+                    onComplete()
                 }
             } message: {
                 Text("Your journal entry has been saved. Keep aligning with your goals daily for best results.")
@@ -121,24 +111,7 @@ struct GoalAlignmentView: View {
         }
     }
     
-    private func loadJournalPrompt() {
-        // Always generate a new prompt for each alignment session
-        Task {
-            let prompt = await aiService.generateJournalPrompt(for: goal)
-            
-            // Update UI on main thread
-            await MainActor.run {
-                journalPrompt = prompt
-                goal.currentPrompt = prompt
-                try? modelContext.save()
-                
-                // Show error alert if there was an error
-                if aiService.errorMessage != nil {
-                    showingErrorAlert = true
-                }
-            }
-        }
-    }
+
     
     private func saveJournalEntry() {
         let trimmedResponse = journalResponse.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -147,7 +120,7 @@ struct GoalAlignmentView: View {
         // Create and save journal entry
         let entry = JournalEntry(
             date: Date(),
-            prompt: journalPrompt,
+            prompt: prompt,
             response: trimmedResponse,
             goal: goal
         )
@@ -198,7 +171,11 @@ extension Color {
     // Create AIPromptService for preview
     let aiService = AIPromptService(apiKey: "dummy-key-for-preview")
     
-    return GoalAlignmentView(goal: goal)
+    return GoalAlignmentView(
+        goal: goal, 
+        prompt: "This is a preview prompt. What is one step you can take today?",
+        onComplete: {}
+    )
         .modelContainer(container)
         .environmentObject(aiService)
 }
