@@ -171,6 +171,31 @@ To ensure a smooth transition for the new developer working on the next version 
    - **Version Control:** Use GitHub for collaboration if set up, with clear commit messages and branch naming (e.g., `feature/cloudkit-referrals`).
    - **Communication:** Establish regular check-ins to align on feature priorities and design decisions, maintaining the app’s minimalist ethos.
 
+### AI Integration and Personalization
+
+`HorizonFrame` leverages the ChatGPT API (GPT-4o model) to create personalized experiences for users in several key areas:
+
+1. **Personalized Journal Prompts (`AIPromptService.swift`):**
+   - **Purpose:** Generates custom journal prompts tailored to each user's specific goals and vision statements.
+   - **Implementation:** Uses the OpenAI API to create vivid, second-person prompts that help users imagine moments after achieving their goals.
+   - **Context-Awareness:** Incorporates the goal text, target date, and the user's own vision statement to create highly relevant prompts.
+   - **Offline Fallbacks:** Includes smart keyword-based fallback prompts when network connectivity is unavailable.
+   - **Caching:** Implements a caching system to reduce API calls and preserve successful prompts.
+
+2. **AI-Powered Notifications (`AINotificationContentService.swift`):**
+   - **Purpose:** Creates personalized notification content that adapts to the user's goal progress and context.
+   - **Categories:** Supports multiple notification types including future visualizations, progress celebrations, gentle accountability reminders, and contextual motivation.
+   - **Contextual Awareness:** Considers factors like current streak, total days active, and time of day when generating notifications.
+   - **Configuration:** Extensive notification preferences system (`NotificationConfiguration.swift`) allows users to customize tone, length, and types of AI-generated content.
+
+3. **Future AI Expansion Plans:**
+   - Enhance personalization by analyzing patterns in user goals and progress.
+   - Implement more advanced goal recommendations based on user behavior and success patterns.
+   - Create AI-generated visualizations and wallpapers that represent the user's goals.
+   - Develop personalized milestone celebrations with AI-generated congratulatory messages.
+
+The AI integration is designed to be unobtrusive yet deeply personalized, helping users maintain emotional connection to their goals through tailored content that evolves with their journey.
+
 ### Summary
 
 `HorizonFrame` is a polished, feature-complete mindfulness app focused on daily goal alignment through breathing and visualization, built with SwiftUI and SwiftData for a native iOS experience. Its core loop—onboarding, tab navigation, daily flow, goal management, progress tracking, and awards—creates a compelling user journey. Internally, it leverages reactive state management and local persistence, with a modular structure for easy expansion. A new developer can quickly onboard by running the app in Xcode, reviewing key files like `MainTabView.swift` and `AlignmentFlowView.swift`, and focusing on potential enhancements like CloudKit integration or accessibility.

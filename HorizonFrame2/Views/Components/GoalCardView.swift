@@ -7,10 +7,12 @@ struct GoalCardView: View {
     @Binding var isExpanded: Bool
     var onPrimaryToggle: (Bool) -> Void
     var onEdit: () -> Void
+    var onDelete: () -> Void
     var onQuickEntry: () -> Void
     var onContinueJourney: () -> Void
     
     @State private var showOptionsMenu: Bool = false
+    @State private var showDeleteConfirmation: Bool = false
     @Environment(\.colorScheme) private var colorScheme
     
     private var darkGray: Color { Color(hex: "1C1C1E") }
@@ -31,12 +33,11 @@ struct GoalCardView: View {
                 HStack {
                     HStack(spacing: 8) {
                         if isPrimary {
-                            Text("⭐")
+                            Text("★")
                                 .font(.title)
+                                .foregroundColor(.yellow)
                         }
                         
-                        Text(goal.getGoalEmoji())
-                            .font(.title)
                         
                         Text(goal.text)
                             .font(.headline)
@@ -55,15 +56,27 @@ struct GoalCardView: View {
                     }
                     .accessibilityLabel("Goal Options")
                     .confirmationDialog("Goal Options", isPresented: $showOptionsMenu) {
-                        Button("Edit Goal") { onEdit() }
+                        Button("Edit All Details") { onEdit() }
                         
                         if isPrimary {
-                            Button("Remove Primary ⭐") { onPrimaryToggle(false) }
+                            Button("Remove Primary") { onPrimaryToggle(false) }
                         } else {
-                            Button("Make Primary ⭐") { onPrimaryToggle(true) }
+                            Button("Make Primary") { onPrimaryToggle(true) }
+                        }
+                        
+                        Button("Delete Goal", role: .destructive) { 
+                            showDeleteConfirmation = true 
                         }
                         
                         Button("Cancel", role: .cancel) {}
+                    }
+                    .alert("Delete Goal", isPresented: $showDeleteConfirmation) {
+                        Button("Delete", role: .destructive) {
+                            onDelete()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Are you sure you want to delete \"\(goal.text)\"? This action cannot be undone.")
                     }
                 }
                 
@@ -123,15 +136,6 @@ struct GoalCardView: View {
                         .accessibilityLabel("\(goal.currentStreak) day streak")
 
                     Spacer()
-
-                    if let lastEntry = goal.lastEntryPreview {
-                        Label(lastEntry, systemImage: "text.bubble")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .lineLimit(1)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel("Last entry: \(lastEntry)")
-                    }
                 }
                 
                 // Action buttons
@@ -250,6 +254,7 @@ struct GoalCardView_Previews: PreviewProvider {
                 isExpanded: .constant(false),
                 onPrimaryToggle: { _ in },
                 onEdit: {},
+                onDelete: {},
                 onQuickEntry: {},
                 onContinueJourney: {}
             )
@@ -266,6 +271,7 @@ struct GoalCardView_Previews: PreviewProvider {
                 isExpanded: .constant(true),
                 onPrimaryToggle: { _ in },
                 onEdit: {},
+                onDelete: {},
                 onQuickEntry: {},
                 onContinueJourney: {}
             )

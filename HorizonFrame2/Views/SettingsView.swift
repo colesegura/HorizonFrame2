@@ -1,11 +1,19 @@
 import SwiftUI
+import SwiftData
+import UIKit
 
 struct SettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var goals: [Goal]
+    
     @StateObject private var notificationManager = NotificationManager.shared
     @AppStorage("isReminderEnabled") private var isReminderEnabled = false
     @AppStorage("reminderTime") private var reminderTimeInterval: Double = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: .now)?.timeIntervalSinceReferenceDate ?? Date().timeIntervalSinceReferenceDate
     @AppStorage("showOnboarding") private var showOnboarding = false
     @AppStorage("preferredMeditationDuration") private var preferredMeditationDuration: TimeInterval = 300
+    
+    @State private var showingNotificationTestView = false
+    @State private var showingNotificationPreferencesView = false
 
 
     var body: some View {
@@ -30,11 +38,34 @@ struct SettingsView: View {
                         Toggle("Daily Reminder", isOn: $isReminderEnabled)
                             .tint(.green)
                         
+                        // Test notification button - always visible
+                        Button(action: {
+                            notificationManager.sendGeneralTestNotification()
+                        }) {
+                            HStack {
+                                Image(systemName: "bell.badge")
+                                Text("Send Test Notification")
+                            }
+                        }
+                        .foregroundColor(.blue)
+                        
                         if isReminderEnabled {
-                                                        DatePicker("Reminder Time", selection: .init(
+                            DatePicker("Reminder Time", selection: .init(
                                 get: { Date(timeIntervalSinceReferenceDate: self.reminderTimeInterval) },
                                 set: { self.reminderTimeInterval = $0.timeIntervalSinceReferenceDate }
                             ), displayedComponents: .hourAndMinute)
+                            
+                            Button("Send Basic Reminder Test") {
+                                sendTestNotification()
+                            }
+                            
+                            Button("Advanced Notification Tests") {
+                                showingNotificationTestView = true
+                            }
+                            
+                            Button("Notification Preferences") {
+                                showingNotificationPreferencesView = true
+                            }
                         }
                     }
                     .listRowBackground(Color.gray.opacity(0.15))
@@ -81,19 +112,26 @@ struct SettingsView: View {
                 .foregroundColor(.white)
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Settings")
+                .padding(.bottom, 71)
             }
         }
         .preferredColorScheme(.dark)
-        .onChange(of: isReminderEnabled) { _, newValue in
-            if newValue {
+        .onChange(of: isReminderEnabled) { _, _ in
+            if isReminderEnabled {
                 notificationManager.requestPermission()
             } else {
                 notificationManager.cancelNotifications()
             }
             updateNotification()
         }
-        .onChange(of: reminderTimeInterval) {
+        .onChange(of: reminderTimeInterval) { _, _ in
             updateNotification()
+        }
+        .sheet(isPresented: $showingNotificationTestView) {
+            NotificationTestView()
+        }
+        .sheet(isPresented: $showingNotificationPreferencesView) {
+            NotificationPreferencesView()
         }
         .onAppear {
             notificationManager.checkPermission()
@@ -105,6 +143,25 @@ struct SettingsView: View {
             notificationManager.scheduleDailyReminder(time: Date(timeIntervalSinceReferenceDate: reminderTimeInterval))
         } else {
             notificationManager.cancelNotifications()
+        }
+    }
+    
+    private func sendTestNotification() {
+        if let goal = goals.first {
+            notificationManager.scheduleTestNotification(for: goal)
+        } else {
+            // Show an alert if no goals are available
+            let alert = UIAlertController(
+                title: "No Goals Found",
+                message: "Please create at least one goal to send a test notification.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+                rootVC.present(alert, animated: true)
+            }
         }
     }
     

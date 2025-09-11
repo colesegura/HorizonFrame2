@@ -57,11 +57,8 @@ struct ProgressView: View {
                         
                     }
                     .padding()
-                    .padding(.bottom, 100)
                 }
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)
-                }
+                .padding(.bottom, 71)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

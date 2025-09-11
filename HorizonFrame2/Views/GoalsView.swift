@@ -7,9 +7,6 @@ struct GoalsView: View {
     @Query private var alignments: [DailyAlignment] // Fetch all alignments
     @State private var showingAddGoalView: Bool = false
     @State private var editingGoal: Goal? = nil
-    @State private var editedGoalText: String = ""
-    @State private var editingGoalDetails: Goal? = nil
-    @State private var editedGoalDetails: String = ""
     @State private var addingActionItemTo: Goal? = nil
     @State private var newActionItemText: String = ""
     
@@ -88,6 +85,7 @@ struct GoalsView: View {
                                     isExpanded: expandedBinding(for: goal),
                                     onPrimaryToggle: { isPrimary in togglePrimaryGoal(goal, isPrimary: isPrimary) },
                                     onEdit: { editingGoal = goal },
+                                    onDelete: { deleteGoal(goal) },
                                     onQuickEntry: { addQuickEntry(for: goal) },
                                     onContinueJourney: { continueJourney(for: goal) }
                                 )
@@ -100,11 +98,9 @@ struct GoalsView: View {
                                 emptyStateView(for: selectedCategory)
                                     .padding(.top, 40)
                             }
-                            
-                            // Space at bottom for add button
-                            Spacer(minLength: 100)
                         }
                         .padding(.top, 8)
+                        .padding(.bottom, 120) // Bottom padding for tab bar and floating button
                     }
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
@@ -114,28 +110,24 @@ struct GoalsView: View {
                             }
                         }
                     }
-                    
-                    // Floating add button
-                    VStack {
+                }
+                
+                // Floating add button - positioned outside the VStack
+                VStack {
+                    Spacer()
+                    HStack {
                         Spacer()
-                        HStack {
-                            Spacer()
-                            MinimalistAddButton(action: {
-                                showingAddGoalView = true
-                            })
-                            .padding(.trailing, 24)
-                            .padding(.bottom, 16)
-                        }
+                        MinimalistAddButton(action: {
+                            showingAddGoalView = true
+                        })
+                        .padding(.trailing, 24)
+                        .padding(.bottom, 50) // Moved closer to tab bar
                     }
                 }
-                .padding(.bottom, 80) // Prevents tab bar from overlapping
             }
             .preferredColorScheme(.dark)
             .sheet(item: $editingGoal) { goal in
-                editGoalSheet(for: goal)
-            }
-            .sheet(item: $editingGoalDetails) { goal in
-                editGoalDetailsSheet(for: goal)
+                EditGoalView(goal: goal)
             }
             .sheet(item: $addingActionItemTo) { goal in
                 addActionItemSheet(for: goal)
@@ -193,15 +185,15 @@ struct GoalsView: View {
     private func addQuickEntry(for goal: Goal) {
         // Navigate to quick entry form or journal
         // This would typically navigate to a journal entry form
-        // For now, we'll just open the goal details
-        editingGoalDetails = goal
+        // For now, we'll just open the goal editor
+        editingGoal = goal
     }
     
     private func continueJourney(for goal: Goal) {
         // Navigate to alignment flow for this goal
         // This would typically start the daily alignment flow
-        // For now, we'll just open the goal details
-        editingGoalDetails = goal
+        // For now, we'll just open the goal editor
+        editingGoal = goal
     }
     
     @ViewBuilder
@@ -272,7 +264,7 @@ struct GoalsView: View {
                     
                     // Edit button
                     Button(action: {
-                        editingGoalDetails = goal
+                        editingGoal = goal
                     }) {
                         Image(systemName: "pencil.circle")
                             .foregroundColor(.blue)
@@ -387,72 +379,6 @@ struct GoalsView: View {
         }
     }
     
-    @ViewBuilder
-    private func editGoalSheet(for goal: Goal) -> some View {
-        VStack(spacing: 20) {
-            Text("Edit Goal")
-                .font(.headline)
-            TextField("Goal", text: $editedGoalText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            HStack {
-                Button("Cancel") { editingGoal = nil }
-                    .buttonStyle(.bordered)
-                Spacer()
-                Button("Save") {
-                    if let editingGoal = editingGoal {
-                        editingGoal.text = editedGoalText
-                    }
-                    editingGoal = nil
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(editedGoalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding()
-        .onAppear {
-            editedGoalText = goal.text
-        }
-        .presentationDetents([.height(200)])
-    }
-    
-    @ViewBuilder
-    private func editGoalDetailsSheet(for goal: Goal) -> some View {
-        VStack(spacing: 20) {
-            Text("Edit Goal Details")
-                .font(.headline)
-            
-            Text("Add as many details as possible that describe what your life will look like having achieved this goal.")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            TextEditor(text: $editedGoalDetails)
-                .frame(minHeight: 150)
-                .padding(4)
-                .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
-            
-            HStack {
-                Button("Cancel") {
-                    editingGoalDetails = nil
-                }
-                .buttonStyle(.bordered)
-                
-                Spacer()
-                
-                Button("Save") {
-                    saveGoalDetails(for: goal)
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding()
-        .onAppear {
-            editedGoalDetails = goal.userVision ?? ""
-        }
-        .presentationDetents([.medium])
-    }
     
     @ViewBuilder
     private func addActionItemSheet(for goal: Goal) -> some View {
@@ -508,7 +434,12 @@ struct GoalsView: View {
 
     private func deleteGoal(_ goal: Goal) {
         modelContext.delete(goal)
+        try? modelContext.save()
         updateGoalOrder()
+        
+        // Add haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
     
     private func archiveGoal(_ goal: Goal) {
@@ -539,11 +470,6 @@ struct GoalsView: View {
         }
     }
     
-    private func saveGoalDetails(for goal: Goal) {
-        goal.userVision = editedGoalDetails.trimmingCharacters(in: .whitespacesAndNewlines)
-        try? modelContext.save()
-        editingGoalDetails = nil
-    }
     
     private func alignmentCount(for goal: Goal) -> Int {
         alignments.filter { alignment in

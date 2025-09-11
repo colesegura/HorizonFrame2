@@ -10,11 +10,11 @@ struct PersonalizedHeaderView: View {
         
         switch hour {
         case 0..<12:
-            return "🌅 Good morning"
+            return "Good morning"
         case 12..<17:
-            return "☀️ Good afternoon"
+            return "Good afternoon"
         default:
-            return "🌙 Good evening"
+            return "Good evening"
         }
     }
     
@@ -35,10 +35,10 @@ struct PersonalizedHeaderView: View {
     }
     
     private var statsText: String {
-        var text = "⚡ \(activeGoalCount) goal\(activeGoalCount != 1 ? "s" : "") active"
+        var text = "\(activeGoalCount) goal\(activeGoalCount != 1 ? "s" : "") active"
         
         if let days = nextDeadlineDays, days > 0 {
-            text += "  📅 Next: \(days) day\(days != 1 ? "s" : "")"
+            text += "  •  Next: \(days) day\(days != 1 ? "s" : "")"
         }
         
         return text

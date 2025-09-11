@@ -79,7 +79,8 @@ struct AddGoalView: View {
                                     Text("Set as primary goal")
                                         .foregroundColor(.white)
                                     
-                                    Text("⭐")
+                                    Image(systemName: "star.fill")
+                                        .foregroundColor(.yellow)
                                 }
                             }
                             .toggleStyle(SwitchToggleStyle(tint: .yellow))

@@ -126,6 +126,7 @@ struct TodayView: View {
                     .padding(.bottom, 120) // Increased padding to avoid overlap with bottom bar
                 }
             }
+            .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
             .statusBar(hidden: true)
             .onAppear {

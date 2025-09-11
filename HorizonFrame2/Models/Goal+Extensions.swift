@@ -70,28 +70,7 @@ extension Goal {
     
     // Helper method to get an appropriate emoji for the goal
     func getGoalEmoji() -> String {
-        // This is a simple implementation - could be enhanced with NLP or user selection
-        let lowercasedText = text.lowercased()
-        
-        if lowercasedText.contains("home") || lowercasedText.contains("house") || lowercasedText.contains("live") {
-            return "🏠"
-        } else if lowercasedText.contains("job") || lowercasedText.contains("work") || lowercasedText.contains("career") || lowercasedText.contains("promot") {
-            return "💼"
-        } else if lowercasedText.contains("money") || lowercasedText.contains("financ") || lowercasedText.contains("earn") || lowercasedText.contains("income") {
-            return "💰"
-        } else if lowercasedText.contains("health") || lowercasedText.contains("fit") || lowercasedText.contains("exercise") {
-            return "💪"
-        } else if lowercasedText.contains("relation") || lowercasedText.contains("love") || lowercasedText.contains("partner") || lowercasedText.contains("marriage") {
-            return "❤️"
-        } else if lowercasedText.contains("friend") || lowercasedText.contains("social") {
-            return "👥"
-        } else if lowercasedText.contains("travel") || lowercasedText.contains("vacation") || lowercasedText.contains("trip") {
-            return "✈️"
-        } else if lowercasedText.contains("learn") || lowercasedText.contains("study") || lowercasedText.contains("education") || lowercasedText.contains("skill") {
-            return "📚"
-        }
-        
-        // Default emoji
-        return "🎯"
+        // Emojis disabled - return empty string
+        return ""
     }
 }

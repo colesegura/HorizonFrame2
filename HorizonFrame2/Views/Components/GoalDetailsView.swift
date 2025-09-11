@@ -1,10 +1,13 @@
 import SwiftUI
+import SwiftData
 
 struct GoalDetailsView: View {
     let goal: Goal
     let isPrimary: Bool
     var onPrimaryToggle: (Bool) -> Void
     var onEdit: () -> Void
+    
+    @State private var showingNotificationSettings = false
     
     private var darkerGray: Color { Color(hex: "151515") }
     
@@ -50,32 +53,51 @@ struct GoalDetailsView: View {
             }
             
             // Action buttons
-            HStack {
-                Button(action: onEdit) {
-                    HStack {
-                        Image(systemName: "pencil")
-                        Text("Edit Goal")
+            VStack(spacing: 12) {
+                HStack {
+                    Button(action: onEdit) {
+                        HStack {
+                            Image(systemName: "pencil")
+                            Text("Edit Goal")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.blue)
+                        .cornerRadius(8)
                     }
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.blue)
-                    .cornerRadius(8)
+                    
+                    Spacer()
+                    
+                    Button(action: { onPrimaryToggle(!isPrimary) }) {
+                        HStack {
+                            Image(systemName: isPrimary ? "star.slash" : "star")
+                            Text(isPrimary ? "Remove Primary" : "Make Primary")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(isPrimary ? Color.orange : Color.yellow)
+                        .cornerRadius(8)
+                    }
                 }
                 
-                Spacer()
-                
-                Button(action: { onPrimaryToggle(!isPrimary) }) {
+                // Notification settings button
+                Button(action: {
+                    showingNotificationSettings = true
+                }) {
                     HStack {
-                        Image(systemName: isPrimary ? "star.slash" : "star")
-                        Text(isPrimary ? "Remove Primary ⭐" : "Make Primary ⭐")
+                        Image(systemName: "bell.badge")
+                        Text("Notification Settings")
                     }
                     .font(.subheadline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(isPrimary ? Color.orange : Color.yellow)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.purple)
                     .cornerRadius(8)
                 }
             }
@@ -83,6 +105,9 @@ struct GoalDetailsView: View {
         .padding(20)
         .background(darkerGray)
         .cornerRadius(16, corners: [.bottomLeft, .bottomRight])
+        .sheet(isPresented: $showingNotificationSettings) {
+            GoalNotificationSettingsView(goal: goal)
+        }
     }
 }
 

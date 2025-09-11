@@ -75,8 +75,9 @@ struct GoalProgressCard: View {
             // Goal header with icon and text
             HStack {
                 // Goal icon (emoji or symbol)
-                Text("🎯")
-                    .font(.system(size: 24))
+                Image(systemName: "target")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
                     .padding(8)
                     .background(Circle().fill(darkBlue1))
                 
