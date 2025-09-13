@@ -28,263 +28,156 @@ struct ProgressView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Gradient background
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.black, Color(hex: "1A1A2E")]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                ).ignoresSafeArea()
+                // Full screen black background - matching Today page
+                Color.black.ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(spacing: 25) {
-                        // Header Section with gradient and progress ring
-                        headerSection
-                        
-                        // Statistics Dashboard
-                        statisticsDashboard
-                        
-                        // Goal Cards Section
-                        goalCardsSection
-                        
-                        // Milestone Celebrations
-                        milestonesSection
-                        
-                        // Calendar Heat Map
-                        calendarHeatMapSection
-                        
-                        // Awards section (keeping for backward compatibility)
-                        awardsSection
-                        
-                    }
-                    .padding()
-                }
-                .padding(.bottom, 71)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                // Custom header with logo, upgrade button and streak counter
+                VStack {
                     HStack(spacing: 12) {
+                        // HorizonFrame logo
+                        Image("horizonframe-logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 30)
+                        
+                        Spacer()
                         UpgradeButton()
                         StreakCounterView()
                     }
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-    
-    // MARK: - View Components
-    
-    // Header Section with Progress Ring and Motivational Text
-    private var headerSection: some View {
-        VStack(spacing: 20) {
-            // Header text
-            VStack(spacing: 8) {
-                Text("Your Journey")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text(motivationalText)
-                    .font(.system(size: 18))
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Progress Ring
-            ProgressRingView(progress: progressMetrics.timeProgress)
-                .padding(.vertical, 10)
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color(hex: "1A1A2E"), Color(hex: "16213E")]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-    }
-    
-    // Statistics Dashboard with Weekly Stats
-    private var statisticsDashboard: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("This Week")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
-                StatBox(value: "\(progressMetrics.currentStreak)", label: "Day Streak")
-                StatBox(value: "\(thisWeekEntries.count)", label: "Entries")
-                StatBox(value: "\(activeGoals.count)", label: "Active Goals")
-                StatBox(value: "\(Int(progressMetrics.entryConsistency * 100))%", label: "Consistency")
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(hex: "1A1A2E").opacity(0.5))
-        )
-    }
-    
-    // Goal Cards Section
-    private var goalCardsSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            HStack {
-                Text("Your Goals")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                NavigationLink(destination: Text("All Goals")) {
-                    Text("See All")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                }
-            }
-            
-            if activeGoals.isEmpty {
-                emptyGoalsView
-            } else {
-                VStack(spacing: 15) {
-                    ForEach(activeGoals.prefix(3)) { goal in
-                        GoalProgressCard(goal: goal, alignments: alignments)
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(hex: "1A1A2E").opacity(0.5))
-        )
-    }
-    
-    // Empty Goals View
-    private var emptyGoalsView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "target")
-                .font(.system(size: 40))
-                .foregroundColor(.gray)
-            
-            Text("No active goals")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            Text("Create goals to track your progress and stay aligned with your vision")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            NavigationLink(destination: Text("Create Goal")) {
-                Text("Create Goal")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.blue)
-                    )
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-    }
-    
-    // Milestones Section
-    private var milestonesSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("Milestones")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    ForEach(progressMetrics.milestones) { milestone in
-                        MilestoneCard(milestone: milestone)
-                    }
-                }
-                .padding(.horizontal, 4)
-                .padding(.bottom, 4)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(hex: "1A1A2E").opacity(0.5))
-        )
-    }
-    
-    // Awards Section
-    private var awardsSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("Awards")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140, maximum: 180))], spacing: 28) {
-                ForEach(Award.allAwards, id: \.id) { award in
-                    AwardCellWithProgress(award: award, isUnlocked: progressMetrics.totalEntries >= award.requiredAlignments, totalAlignments: progressMetrics.totalEntries)
-                }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(hex: "1A1A2E").opacity(0.5))
-        )
-    }
-    
-    // Calendar Heat Map Section
-    private var calendarHeatMapSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("Activity Calendar")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            ProgressCalendarView(alignments: alignments)
-            
-            HStack {
-                Button(action: {
-                    withAnimation {
-                        displayedMonth = Calendar.current.date(byAdding: .month, value: -1, to: displayedMonth)!
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    
+                    Spacer()
                 }
                 
-                Spacer()
-                
-                Text(monthYearString)
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Button(action: {
-                    withAnimation {
-                        if canGoToNextMonth {
-                            displayedMonth = Calendar.current.date(byAdding: .month, value: 1, to: displayedMonth)!
+                VStack(spacing: 24) {
+                    Spacer(minLength: 60) // Space for header
+                    
+                    // Simple title - matching Today page style
+                    Text("Your Progress")
+                        .font(.system(size: 32))
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                    
+                    // Motivational text
+                    Text(motivationalText)
+                        .font(.system(size: 18))
+                        .foregroundColor(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                    
+                    // Progress content
+                    ScrollView {
+                        VStack(spacing: 32) {
+                            // Simple stats
+                            simpleStatsSection
+                            
+                            // Goals progress
+                            if !activeGoals.isEmpty {
+                                simpleGoalsSection
+                            }
+                            
+                            // Calendar
+                            simpleCalendarSection
                         }
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 120)
                     }
-                }) {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(canGoToNextMonth ? .white : .gray)
+                    
+                    Spacer()
                 }
-                .disabled(!canGoToNextMonth)
             }
-            .padding(.horizontal)
+            .toolbar(.hidden, for: .navigationBar)
+            .preferredColorScheme(.dark)
+            .statusBar(hidden: true)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(hex: "1A1A2E").opacity(0.5))
-        )
     }
+    
+    // MARK: - Simple View Components
+    
+    // Simple stats section - matching Today page minimalism
+    private var simpleStatsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack {
+                    Text("\(progressMetrics.currentStreak)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white.opacity(0.9))
+                    Text("Day Streak")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                
+                Spacer()
+                
+                VStack {
+                    Text("\(progressMetrics.totalEntries)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white.opacity(0.9))
+                    Text("Total Entries")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                
+                Spacer()
+                
+                VStack {
+                    Text("\(activeGoals.count)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white.opacity(0.9))
+                    Text("Active Goals")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+        }
+    }
+    
+    // Simple goals section
+    private var simpleGoalsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Recent Goals")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+            
+            ForEach(activeGoals.prefix(3)) { goal in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(goal.text)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    let count = alignmentCount(for: goal)
+                    if count > 0 {
+                        Text("\(count) \(count == 1 ? "day" : "days") aligned")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    
+    // Simple calendar section
+    private var simpleCalendarSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Activity Calendar")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+            
+            SimpleProgressCalendar(alignments: alignments)
+        }
+    }
+    
+    // Helper method to count alignments for a goal
+    private func alignmentCount(for goal: Goal) -> Int {
+        alignments.filter { alignment in
+            alignment.goals.contains(where: { $0.id == goal.id })
+        }.count
+    }
+    
+    
+    
     
     // MARK: - Helper Methods
     
@@ -482,6 +375,116 @@ struct ProgressView: View {
         let calendar = Calendar.current
         let currentMonth = calendar.startOfDay(for: calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!)
         return displayedMonth < currentMonth
+    }
+}
+
+// Simple calendar component for Progress page
+struct SimpleProgressCalendar: View {
+    let alignments: [DailyAlignment]
+    @State private var displayedMonth: Date = Date()
+    private let calendar = Calendar.current
+    private let weekDays = ["S", "M", "T", "W", "T", "F", "S"]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Month navigation
+            HStack {
+                Button(action: { 
+                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth)! 
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.white.opacity(0.7))
+                        .font(.system(size: 16))
+                }
+                
+                Spacer()
+                
+                Text(monthYearString)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+                
+                Spacer()
+                
+                Button(action: { 
+                    if canGoToNextMonth {
+                        displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth)! 
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(canGoToNextMonth ? .white.opacity(0.7) : .white.opacity(0.3))
+                        .font(.system(size: 16))
+                }
+                .disabled(!canGoToNextMonth)
+            }
+            
+            // Weekday headers
+            HStack {
+                ForEach(weekDays, id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Calendar grid
+            let days = daysInMonthGrid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 6) {
+                ForEach(days, id: \.self) { day in
+                    if let day = day {
+                        let isCompleted = completedDays.contains(calendar.startOfDay(for: day))
+                        let isFuture = day > calendar.startOfDay(for: .now)
+                        
+                        ZStack {
+                            if isCompleted {
+                                Circle()
+                                    .fill(Color.white.opacity(0.8))
+                                    .frame(width: 28, height: 28)
+                            }
+                            
+                            Text("\(calendar.component(.day, from: day))")
+                                .font(.system(size: 14, weight: isCompleted ? .bold : .regular))
+                                .foregroundColor(isCompleted ? .black : (isFuture ? .white.opacity(0.3) : .white.opacity(0.7)))
+                        }
+                        .frame(height: 28)
+                    } else {
+                        Text("")
+                            .frame(height: 28)
+                    }
+                }
+            }
+        }
+    }
+    
+    private var completedDays: Set<Date> {
+        Set(alignments.filter { $0.completed }.map { calendar.startOfDay(for: $0.date) })
+    }
+    
+    private var monthYearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: displayedMonth)
+    }
+    
+    private var canGoToNextMonth: Bool {
+        let currentMonth = calendar.startOfDay(for: calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!)
+        return displayedMonth < currentMonth
+    }
+    
+    private var daysInMonthGrid: [Date?] {
+        let range = calendar.range(of: .day, in: .month, for: displayedMonth)!
+        let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth) - 1
+        var days: [Date?] = Array(repeating: nil, count: firstWeekday)
+        for day in range {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) {
+                days.append(date)
+            }
+        }
+        while days.count % 7 != 0 {
+            days.append(nil)
+        }
+        return days
     }
 }
 

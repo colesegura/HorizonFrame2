@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import StoreKit
+import Foundation
 
 @main
 struct HorizonFrame2App: App {
@@ -17,6 +18,11 @@ struct HorizonFrame2App: App {
             ActionItem.self,
             DailyAlignment.self,
             UnlockedAward.self,
+            PersonalCode.self,
+            PersonalCodePrinciple.self,
+            DailyReview.self,
+            PrincipleReview.self,
+            WeeklyReview.self,
         ])
 
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

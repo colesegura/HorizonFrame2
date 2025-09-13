@@ -18,91 +18,83 @@ struct GoalAlignmentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.black, Color(UIColor(red: 0x1A/255.0, green: 0x1A/255.0, blue: 0x2E/255.0, alpha: 1.0))]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // Full screen black background - matching Today page
+                Color.black.ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Goal display
-                        Text(goal.text)
-                            .font(.title2.bold())
-                            .foregroundColor(.white)
-                            .padding(.bottom, 8)
-                        
-                        // Journal prompt section
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Text("Today's Journal Prompt")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                
-                                if aiService.isLoading {
-                                    Spacer()
-                                    ProgressView()
-                                        .tint(.white)
-                                }
-                            }
-                            
-                            Text(prompt)
-                                .font(.body)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.purple.opacity(0.2))
-                                .cornerRadius(10)
+                VStack(spacing: 24) {
+                    // Back button at top
+                    HStack {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "arrow.left")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white.opacity(0.8))
                         }
-                        
-                        // Journal response section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Now, respond to the prompt above as if you are experiencing this reality.")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            
-                            TextEditor(text: $journalResponse)
-                                .frame(minHeight: 200)
-                                .padding(10)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(8)
-                                .foregroundColor(.white)
-                        }
-                        
-                        // Save button
-                        Button(action: saveJournalEntry) {
-                            Text("Complete Alignment")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(journalResponse.isEmpty ? Color.gray : Color.purple)
-                                .cornerRadius(10)
-                        }
-                        .disabled(journalResponse.isEmpty)
-                        .padding(.top, 16)
+                        Spacer()
                     }
-                    .padding()
+                    .padding(.horizontal, 24)
+                    .padding(.top, 60)
+                    
+                    // Goal title - matching Today page style
+                    Text(goal.text)
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                    
+                    // Journal prompt
+                    VStack(spacing: 16) {
+                        Text("Today's Reflection")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white.opacity(0.8))
+                        
+                        Text(prompt)
+                            .font(.system(size: 16))
+                            .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                    
+                    Spacer()
+                    
+                    // Journal response section
+                    VStack(spacing: 16) {
+                        Text("Write your response")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white.opacity(0.8))
+                        
+                        TextEditor(text: $journalResponse)
+                            .frame(minHeight: 150)
+                            .padding(16)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(12)
+                            .foregroundColor(.white)
+                            .font(.system(size: 16))
+                    }
+                    .padding(.horizontal, 24)
+                    
+                    Spacer()
+                    
+                    // Complete button - matching Today page style
+                    Button(action: saveJournalEntry) {
+                        Text("Complete Alignment")
+                    }
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.black)
+                    .frame(width: 320, height: 60)
+                    .background(
+                        RoundedRectangle(cornerRadius: 30)
+                            .fill(journalResponse.isEmpty ? Color.white.opacity(0.3) : Color.white)
+                            .shadow(color: .white.opacity(0.3), radius: 10, x: 0, y: 0)
+                    )
+                    .disabled(journalResponse.isEmpty)
+                    .padding(.bottom, 60)
                 }
             }
-            .navigationTitle("Goal Alignment")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.white)
-                    }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
-
-
+            .statusBar(hidden: true)
             .fullScreenCover(isPresented: $showingCompletionView) {
                 CompletionView(alignedGoals: [goal]) {
-                    // When CompletionView is dismissed, call onComplete to move to next goal
                     showingCompletionView = false
                     onComplete()
                 }

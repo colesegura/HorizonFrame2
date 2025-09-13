@@ -102,9 +102,10 @@ The app has undergone significant enhancements, including a comprehensive redesi
    - **File Organization:** Located at `/Users/colesegura/Code/HorizonFrame2/HorizonFrame2`, with subfolders for `Views`, `Models`, `Helpers`, etc.
    - **Key Files:**
      - `HorizonFrame2App.swift`: App entry point, sets up SwiftData container.
-     - View files under `Views/` (e.g., `TodayView.swift`, `AlignmentFlowView.swift`) for UI.
-     - Model files under `Models/` for data structures.
+     - View files under `Views/` (e.g., `TodayView.swift`, `AlignmentFlowView.swift`, `EditGoalView.swift`) for UI.
+     - Model files under `Models/` for data structures including new notification models (`GoalNotificationSettings.swift`, `NotificationContent.swift`, `NotificationPreferences.swift`, `NotificationType.swift`).
      - Helper files under `Helpers/` for logic like `AwardManager.swift` and `NotificationManager.swift`.
+     - Component files under `Views/Components/` for reusable UI elements and notification system components.
 
 3. **Data Flow and State Management:**
    - **State:** Managed via `@State`, `@Binding`, and `@AppStorage` for UI state (e.g., timer duration, current tab) and persistent settings (e.g., onboarding completion).
@@ -133,7 +134,12 @@ The app has undergone significant enhancements, including a comprehensive redesi
 - **Feature-Complete:** All core features (onboarding, alignment flow, goal management, progress tracking, awards, settings) are implemented and polished.
 - **UI Consistency:** Dark minimalist theme, unified timer animations, immersive flow with hidden tab bar.
 - **Progress Page Redesign:** Completed comprehensive redesign with goal cards, statistics dashboard, milestones section, and calendar heatmap for a more emotionally engaging experience.
-- **Goal Visualization Enhancement:** Updated prompt to encourage users to add detailed descriptions of their future state after achieving goals. Dropdown UI for editing these details is planned.
+- **Goal Management Enhancements (Latest):** 
+  - Comprehensive goal editing via `EditGoalView.swift` allowing modification of all goal properties (title, target date, category, vision, visualization)
+  - Goal deletion functionality with confirmation dialogs
+  - Removed emojis from goals page and related components for cleaner UI
+  - Fixed goal card layout cutoff issues and duplicate button problems
+  - Resolved content overlap with bottom tab bar using precise 71pt padding
 - **App Store Readiness:** Prepared for submission with screenshots, promotional text, and build upload guidance provided. TestFlight setup instructions are ready for beta testing.
 
 ### Guidance for New Developer Onboarding
@@ -148,9 +154,11 @@ To ensure a smooth transition for the new developer working on the next version 
 
 2. **Key Files to Review:**
    - Start with `HorizonFrame2App.swift` for app initialization and SwiftData setup.
-   - Review `MainTabView.swift` for navigation structure.
+   - Review `MainTabView.swift` for navigation structure and `CustomTabBar.swift` for tab bar implementation.
    - Explore `AlignmentFlowView.swift` and sub-views (`BreathingView.swift`, `VisualizationView.swift`) for core user flow.
    - Check `AwardManager.swift` for gamification logic.
+   - Review `EditGoalView.swift` for comprehensive goal editing functionality.
+   - Examine notification system files: `NotificationManager.swift`, `NotificationPreferencesView.swift`, `NotificationTestView.swift`.
 
 3. **Immediate Tasks for Familiarization:**
    - **Run the App:** Build and run `HorizonFrame` in Xcode Simulator (iPhone 16 Pro recommended) to experience the onboarding, daily flow, and tab navigation firsthand.
@@ -158,12 +166,11 @@ To ensure a smooth transition for the new developer working on the next version 
    - **Debug Mode:** Use Xcode’s debugger to step through `goToNextGoal()` in `VisualizationView.swift` or notification scheduling in `NotificationManager.swift` to understand state transitions.
 
 4. **Potential Next Features for Version 2.0:**
-   - **Goal Details Dropdown:** Implement dropdown UI in the Focuses tab to allow users to edit detailed descriptions of what their life will look like after achieving each goal.
-   - **Progress Page Phase 2:** Implement advanced analytics and AI insights for deeper progress tracking.
+   - **UI Improvements:** Currently on `feature/ui-improvements` branch for ongoing UI refinements and enhancements.
+   - **Advanced Notifications:** Expand the notification system with AI-generated content and more customization options.
    - **CloudKit Integration:** Expand referral system with backend tracking for code redemption and shared awards.
    - **Analytics:** Add optional usage tracking (with consent) to understand user behavior for future improvements.
    - **Accessibility Enhancements:** Improve VoiceOver support and dynamic type scaling for broader usability.
-   - **Advanced Notifications:** Offer customizable reminder messages or multiple daily prompts.
    - **New Gamification Layers:** Introduce challenges or social features (e.g., streak leaderboards with friends, respecting privacy).
 
 5. **Collaboration Tips:**

@@ -5,10 +5,13 @@ struct GoalsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Goal.order) private var goals: [Goal]
     @Query private var alignments: [DailyAlignment] // Fetch all alignments
+    @Query private var personalCodes: [PersonalCode]
     @State private var showingAddGoalView: Bool = false
     @State private var editingGoal: Goal? = nil
     @State private var addingActionItemTo: Goal? = nil
     @State private var newActionItemText: String = ""
+    @State private var showingAddPrincipleView: Bool = false
+    @State private var editingPrinciple: PersonalCodePrinciple? = nil
     
     // New state variables for redesigned UI
     @State private var selectedCategory: GoalCategory = .active
@@ -17,7 +20,7 @@ struct GoalsView: View {
     
     // Computed properties for categorized goals
     private var activeGoals: [Goal] { 
-        goals.filter { !$0.isArchived && $0.goalCategory == .active } 
+        goals.filter { !$0.isArchived }
     }
     private var upcomingGoals: [Goal] { 
         goals.filter { !$0.isArchived && $0.goalCategory == .upcoming } 
@@ -39,6 +42,16 @@ struct GoalsView: View {
     }
     
     // Next deadline in days
+    private var personalCode: PersonalCode {
+        if let code = personalCodes.first {
+            return code
+        } else {
+            let newCode = PersonalCode()
+            modelContext.insert(newCode)
+            return newCode
+        }
+    }
+    
     private var nextDeadlineDays: Int? {
         let activeAndUpcomingGoals = goals.filter { !$0.isArchived }
         guard !activeAndUpcomingGoals.isEmpty else { return nil }
@@ -57,75 +70,124 @@ struct GoalsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                // Full screen black background - matching Today page
                 Color.black.ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    // Personalized header
-                    PersonalizedHeaderView(
-                        activeGoalCount: activeGoals.count + upcomingGoals.count,
-                        nextDeadlineDays: nextDeadlineDays,
-                        userName: userName
-                    )
-                    
-                    // Category tabs
-                    GoalCategoryTabView(
-                        selectedCategory: $selectedCategory,
-                        categoryCounts: categoryCounts
-                    )
+                // Custom header with logo, upgrade button and streak counter
+                VStack {
+                    HStack(spacing: 12) {
+                        // HorizonFrame logo
+                        Image("horizonframe-logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 30)
+                        
+                        Spacer()
+                        UpgradeButton()
+                        StreakCounterView()
+                    }
+                    .padding(.horizontal, 16)
                     .padding(.top, 8)
                     
-                    // Goals list
+                    Spacer()
+                }
+                
+                VStack(spacing: 24) {
+                    Spacer(minLength: 60) // Space for header
+                    
+                    // Simple title - matching Today page style
+                    Text("Your Goals")
+                        .font(.system(size: 32))
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                    
+                    // Goals list with minimal styling
                     ScrollView {
-                        LazyVStack(spacing: 16) {
-                            // Display goals based on selected category
-                            ForEach(goalsForSelectedCategory()) { goal in
-                                GoalCardView(
-                                    goal: goal,
-                                    isPrimary: goal.isPrimary,
-                                    isExpanded: expandedBinding(for: goal),
-                                    onPrimaryToggle: { isPrimary in togglePrimaryGoal(goal, isPrimary: isPrimary) },
-                                    onEdit: { editingGoal = goal },
-                                    onDelete: { deleteGoal(goal) },
-                                    onQuickEntry: { addQuickEntry(for: goal) },
-                                    onContinueJourney: { continueJourney(for: goal) }
-                                )
-                                .padding(.horizontal)
-                                .transition(.opacity)
+                        LazyVStack(spacing: 20) {
+                            // --- Personal Code Section ---
+                            Section {
+                                let principles = personalCode.principles.sorted { $0.order < $1.order }
+                                if principles.isEmpty {
+                                    emptyPrinciplesView()
+                                } else {
+                                    ForEach(principles) { principle in
+                                        PrincipleRowView(
+                                            principle: principle,
+                                            onEdit: {
+                                                editingPrinciple = principle
+                                            },
+                                            onDelete: {
+                                                // Find the index of the principle to delete
+                                                if let index = principles.firstIndex(of: principle) {
+                                                    deletePrinciples(at: IndexSet(integer: index))
+                                                }
+                                            }
+                                        )
+                                    }
+                                    .onMove(perform: movePrinciples)
+                                }
+                                
+                                Button(action: {
+                                    showingAddPrincipleView = true
+                                }) {
+                                    Label("Add Principle", systemImage: "plus")
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color.white.opacity(0.1))
+                                        .cornerRadius(16)
+                                }
                             }
-                            
-                            // Empty state
-                            if goalsForSelectedCategory().isEmpty {
-                                emptyStateView(for: selectedCategory)
-                                    .padding(.top, 40)
+                            .padding(.horizontal, 24)
+
+                            // --- Goals Section ---
+                            Section(header: Text("Long-Term Goals").font(.headline).foregroundColor(.gray).padding(.top, 20)) {
+                                ForEach(activeGoals) { goal in
+                                    goalRowMinimal(for: goal)
+                                }
+                                
+                                // Empty state for goals
+                                if activeGoals.isEmpty {
+                                    emptyStateViewMinimal()
+                                        .padding(.top, 20)
+                                }
                             }
+                            .padding(.horizontal, 24)
                         }
                         .padding(.top, 8)
                         .padding(.bottom, 120) // Bottom padding for tab bar and floating button
                     }
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            HStack(spacing: 12) {
-                                UpgradeButton()
-                                StreakCounterView()
-                            }
-                        }
-                    }
-                }
-                
-                // Floating add button - positioned outside the VStack
-                VStack {
+                    
                     Spacer()
-                    HStack {
-                        Spacer()
-                        MinimalistAddButton(action: {
-                            showingAddGoalView = true
-                        })
-                        .padding(.trailing, 24)
-                        .padding(.bottom, 50) // Moved closer to tab bar
+                    
+                    // Edit button for principles
+                    if !personalCode.principles.isEmpty {
+                        EditButton()
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.bottom, 16)
                     }
+
+                    // Add goal button at bottom - matching Today page style
+                    Button(action: {
+                        showingAddGoalView = true
+                    }) {
+                        Text("Add Goal")
+                    }
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.black)
+                    .frame(width: 320, height: 60)
+                    .background(
+                        RoundedRectangle(cornerRadius: 30)
+                            .fill(Color.white)
+                            .shadow(color: .white.opacity(0.3), radius: 10, x: 0, y: 0)
+                    )
+                    .padding(.bottom, 120)
                 }
             }
+            .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
+            .statusBar(hidden: true)
             .sheet(item: $editingGoal) { goal in
                 EditGoalView(goal: goal)
             }
@@ -134,6 +196,12 @@ struct GoalsView: View {
             }
             .sheet(isPresented: $showingAddGoalView) {
                 AddGoalView()
+            }
+            .sheet(isPresented: $showingAddPrincipleView) {
+                AddPrincipleView(personalCode: personalCode)
+            }
+            .sheet(item: $editingPrinciple) { principle in
+                EditPrincipleView(principle: principle)
             }
         }
     }
@@ -197,38 +265,149 @@ struct GoalsView: View {
     }
     
     @ViewBuilder
-    private func emptyStateView(for category: GoalCategory) -> some View {
-        VStack(spacing: 24) {
-            Image(systemName: category.emptyStateIcon)
-                .font(.system(size: 60))
-                .foregroundColor(.gray.opacity(0.6))
+    private func emptyPrinciplesView() -> some View {
+        VStack(spacing: 16) {
+            Text("No principles yet")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
             
-            Text(category.emptyStateMessage)
-                .font(.headline)
-                .foregroundColor(.gray)
+            Text("Add your first principle to define how you want to live each day.")
+                .font(.system(size: 16))
+                .foregroundColor(.white.opacity(0.5))
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .padding(.horizontal)
+        }
+        .padding(.vertical, 20)
+    }
+
+    @ViewBuilder
+    private func emptyStateViewMinimal() -> some View {
+        VStack(spacing: 24) {
+            Text("No goals yet")
+                .font(.system(size: 22))
+                .foregroundColor(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
             
-            Button(action: {
-                showingAddGoalView = true
-            }) {
-                Text("Add Your First Goal")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [Color.blue, Color.purple]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(12)
-            }
+            Text("Add your first goal to get started")
+                .font(.system(size: 18))
+                .foregroundColor(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
+    }
+    
+    @ViewBuilder
+    private func goalRowMinimal(for goal: Goal) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Goal text
+            HStack {
+                Text(goal.text)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+                    .multilineTextAlignment(.leading)
+                Spacer()
+                
+                // Menu button
+                Menu {
+                    Button(action: {
+                        editingGoal = goal
+                    }) {
+                        Label("Edit Goal", systemImage: "pencil")
+                    }
+                    
+                    Button(action: {
+                        addingActionItemTo = goal
+                    }) {
+                        Label("Add Action Item", systemImage: "plus.circle")
+                    }
+                    
+                    Divider()
+                    
+                    Button(role: .destructive, action: {
+                        deleteGoal(goal)
+                    }) {
+                        Label("Delete Goal", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
+            // Progress bar (if goal has target date)
+            if let targetDate = goal.targetDate {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Progress")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Spacer()
+                        
+                        Text("\(Int(progressPercentage(for: goal) * 100))%")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // Background
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white.opacity(0.1))
+                                .frame(height: 6)
+                            
+                            // Progress
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white.opacity(0.8))
+                                .frame(width: max(0, min(CGFloat(progressPercentage(for: goal)) * geometry.size.width, geometry.size.width)), height: 6)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progressPercentage(for: goal))
+                        }
+                    }
+                    .frame(height: 6)
+                }
+            }
+            
+            // Goal details if available
+            if let details = goal.userVision, !details.isEmpty {
+                Text(details)
+                    .font(.system(size: 16))
+                    .foregroundColor(.white.opacity(0.7))
+                    .lineLimit(3)
+            } else if let visualization = goal.visualization, !visualization.isEmpty {
+                Text(visualization)
+                    .font(.system(size: 16))
+                    .foregroundColor(.white.opacity(0.7))
+                    .lineLimit(3)
+            }
+            
+            // Alignment count
+            let count = alignmentCount(for: goal)
+            if count > 0 {
+                Text("\(count) \(count == 1 ? "day" : "days") aligned")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) {
+                deleteGoal(goal)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
     
     // Legacy methods for backward compatibility
@@ -477,6 +656,39 @@ struct GoalsView: View {
         }.count
     }
     
+    private func progressPercentage(for goal: Goal) -> Double {
+        guard let targetDate = goal.targetDate else { return 0.0 }
+        let created = goal.createdAt
+        let totalDuration = targetDate.timeIntervalSince(created)
+        let elapsedDuration = Date().timeIntervalSince(created)
+        return min(max(elapsedDuration / totalDuration, 0.0), 1.0)
+    }
+    
+    private func movePrinciples(from source: IndexSet, to destination: Int) {
+        var sortedPrinciples = personalCode.principles.sorted { $0.order < $1.order }
+        sortedPrinciples.move(fromOffsets: source, toOffset: destination)
+        
+        for (index, principle) in sortedPrinciples.enumerated() {
+            principle.order = index
+        }
+        
+        // Haptic feedback for move
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+    }
+
+    private func deletePrinciples(at offsets: IndexSet) {
+        let sortedPrinciples = personalCode.principles.sorted { $0.order < $1.order }
+        for index in offsets {
+            let principleToDelete = sortedPrinciples[index]
+            modelContext.delete(principleToDelete)
+        }
+        
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+
     private func checkFocusAwards() {
         let awardManager = AwardManager(modelContext: modelContext)
         awardManager.checkAllAwards(stats: (0,0,0), totalFocuses: goals.count + 1)

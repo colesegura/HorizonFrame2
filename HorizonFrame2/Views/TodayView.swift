@@ -3,7 +3,9 @@ import SwiftData
 
 struct TodayView: View {
     @Query private var goals: [Goal]
-    @Query private var alignments: [DailyAlignment]
+    @Query private var personalCodes: [PersonalCode]
+    @Query(sort: \DailyAlignment.date, order: .reverse) private var alignments: [DailyAlignment]
+    @Query(sort: \DailyReview.date, order: .reverse) private var dailyReviews: [DailyReview]
     @State private var showAlignmentFlow = false
     @State private var showCompletion = false
     @State private var completedGoals: [Goal] = []
@@ -13,6 +15,9 @@ struct TodayView: View {
     @State private var selectedDayForDetail: Date? = nil
     @State private var showGoalAlignment: Bool = false
     @State private var selectedGoalForAlignment: Goal? = nil
+    @State private var showCommitmentView: Bool = false
+    @State private var showDailyReviewView: Bool = false
+    @State private var showWeeklyReviewView: Bool = false
     @State private var remainingGoalsForAlignment: [Goal] = []
     
     // Create a shared AIPromptService instance
@@ -28,6 +33,30 @@ struct TodayView: View {
     @State private var prefetchedPrompt: String?
     @State private var isFetchingPrompt = false
     
+    private var focusPrincipleReview: PrincipleReview? {
+        // Find the principle review with the lowest score from the last daily review
+        lastDailyReview?.principleReviews.min(by: { $0.score < $1.score })
+    }
+
+    private var lastDailyReview: DailyReview? {
+        dailyReviews.first
+    }
+
+    private var personalCode: PersonalCode? {
+        personalCodes.first
+    }
+
+    private var lastAlignment: DailyAlignment? {
+        alignments.first
+    }
+
+    private var isReturningAfterBreak: Bool {
+        guard let lastAlignmentDate = lastAlignment?.date else {
+            return false
+        }
+        return !Calendar.current.isDateInYesterday(lastAlignmentDate) && !Calendar.current.isDateInToday(lastAlignmentDate)
+    }
+
     private var activeGoals: [Goal] {
         goals.filter { !$0.isArchived }
     }
@@ -64,15 +93,15 @@ struct TodayView: View {
                     
                     // Welcome text centered exactly in the middle of the screen
                     VStack(spacing: 20) {
-                        Text("Welcome")
-                            .font(.system(size: 32)) // Removed bold and period
+                        Text(isReturningAfterBreak ? "Welcome Back." : "Welcome")
+                            .font(.system(size: 32))
                             .opacity(showWelcome ? 1 : 0)
                             
                         Text("Today is \(Date().formatted(date: .abbreviated, time: .omitted)).")
                             .font(.system(size: 22))
                             .opacity(showDate ? 1 : 0)
                             
-                        Text("Let's return focus to your goals.")
+                        Text(isReturningAfterBreak ? "Every new day is a fresh start." : "Let's return focus to your goals.")
                             .font(.system(size: 22))
                             .opacity(showMessage ? 1 : 0)
                     }
@@ -96,15 +125,8 @@ struct TodayView: View {
                         // Set up the queue of goals for alignment
                         remainingGoalsForAlignment = Array(activeGoals)
                         
-                        // Start with the first goal
-                        if let firstGoal = remainingGoalsForAlignment.first {
-                            print("Starting alignment with goal: \(firstGoal.id)")
-                            selectedGoalForAlignment = firstGoal
-                            // Remove the first goal from the queue as we're about to work on it
-                            remainingGoalsForAlignment.removeFirst()
-                        } else {
-                            print("ERROR: activeGoals is not empty but couldn't get first element")
-                        }
+                        // Show the commitment view first
+                        showCommitmentView = true
                     }) {
                         if isFetchingPrompt {
                             ProgressView()
@@ -123,7 +145,29 @@ struct TodayView: View {
                     )
                     .disabled(isFetchingPrompt || prefetchedPrompt == nil || activeGoals.isEmpty)
                     .opacity(showButton ? 1 : 0)
-                    .padding(.bottom, 120) // Increased padding to avoid overlap with bottom bar
+                    .padding(.bottom, 20)
+
+                    // Daily Review Button
+                    Button(action: {
+                        showDailyReviewView = true
+                    }) {
+                        Text("Complete Daily Review")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .opacity(showButton ? 1 : 0)
+                    .padding(.bottom, 20) // Positioned below the main button
+
+                    // Weekly Review Button
+                    Button(action: {
+                        showWeeklyReviewView = true
+                    }) {
+                        Text("Start Weekly Review")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .opacity(showButton ? 1 : 0)
+                    .padding(.bottom, 80)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -158,6 +202,32 @@ struct TodayView: View {
                 }
             }
             // Use item-based sheet presentation which is safer and only presents when the item is non-nil
+            .sheet(isPresented: $showCommitmentView) {
+                if let code = personalCode {
+                    CommitmentView(personalCode: code, onComplete: {
+                        // After commitment, start the goal alignment flow
+                        if let firstGoal = remainingGoalsForAlignment.first {
+                            selectedGoalForAlignment = firstGoal
+                            remainingGoalsForAlignment.removeFirst()
+                        }
+                    }, focusPrincipleReview: focusPrincipleReview)
+                } else {
+                    // Handle case where there is no personal code yet
+                    Text("Please set up your Personal Code in the Goals tab first.")
+                }
+            }
+            .sheet(isPresented: $showWeeklyReviewView) {
+                WeeklyReviewView()
+            }
+            .sheet(isPresented: $showDailyReviewView) {
+                if let code = personalCode {
+                    DailyReviewView(personalCode: code)
+                } else {
+                    // This case should ideally not be hit if the button is only shown when a code exists,
+                    // but it's good practice to handle it.
+                    Text("Please set up your Personal Code in the Goals tab first.")
+                }
+            }
             .sheet(item: $selectedGoalForAlignment) { goal in
                 GoalAlignmentView(
                     goal: goal, 
@@ -237,5 +307,5 @@ struct TodayView: View {
 
 #Preview {
     TodayView()
-        .modelContainer(for: [Goal.self, DailyAlignment.self])
+        .modelContainer(for: [Goal.self, DailyAlignment.self, PersonalCode.self, PersonalCodePrinciple.self, DailyReview.self, PrincipleReview.self, WeeklyReview.self])
 }
