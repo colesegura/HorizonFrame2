@@ -34,14 +34,20 @@ struct StreakCounterView: View {
         HStack(spacing: 4) {
             Image(systemName: "flame.fill")
                 .foregroundColor(.orange)
+                .font(.system(size: 14))
             Text("\(currentStreak)")
-                .font(.system(.headline, design: .rounded).bold())
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.white)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(20)
+        .frame(width: 50, height: 32)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.5), lineWidth: 1)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black)
+                )
+        )
     }
 }
 

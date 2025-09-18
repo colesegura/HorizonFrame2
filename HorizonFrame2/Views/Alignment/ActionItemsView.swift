@@ -52,8 +52,11 @@ struct ActionItemsView: View {
                         Button(action: {
                             // Save action items to goals
                             saveActionItems()
-                            // Complete the alignment
-                            onComplete()
+                            // Move to next page (journaling) instead of completing
+                            print("🔄 ActionItemsView: Moving to next page (currentPage: \(currentPage) -> \(currentPage + 1))")
+                            withAnimation {
+                                currentPage += 1
+                            }
                         }) {
                             ZStack {
                                 Circle().fill(Color.white).frame(width: 60, height: 60)

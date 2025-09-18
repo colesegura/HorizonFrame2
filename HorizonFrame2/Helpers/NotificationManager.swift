@@ -3,6 +3,36 @@ import UserNotifications
 import SwiftUI
 import SwiftData
 
+enum ActivityType: String {
+    case dailyAlignment = "daily_alignment"
+    case dailyReview = "daily_review"
+    case weeklyReview = "weekly_review"
+    
+    var displayName: String {
+        switch self {
+        case .dailyAlignment: return "Daily Alignment"
+        case .dailyReview: return "Daily Review"
+        case .weeklyReview: return "Weekly Review"
+        }
+    }
+    
+    var notificationTitle: String {
+        switch self {
+        case .dailyAlignment: return "Your Daily Alignment is ready!"
+        case .dailyReview: return "Time for your Daily Review"
+        case .weeklyReview: return "Weekly Review Time"
+        }
+    }
+    
+    var notificationBody: String {
+        switch self {
+        case .dailyAlignment: return "Start your day with intention and clarity."
+        case .dailyReview: return "Reflect on your day and celebrate your progress."
+        case .weeklyReview: return "Take time to reflect on your week and plan for success."
+        }
+    }
+}
+
 class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     @Published var permissionGranted = false
@@ -43,8 +73,77 @@ class NotificationManager: ObservableObject {
         }
     }
     
-    // MARK: - Basic Notifications
+    // MARK: - Activity Notifications
     
+    func scheduleActivityNotifications(preferences: ActivityNotificationPreferences) {
+        guard permissionGranted else { return }
+        
+        // Cancel existing activity notifications
+        cancelActivityNotifications()
+        
+        // Schedule daily alignment notification
+        scheduleActivityNotification(
+            type: .dailyAlignment,
+            time: preferences.dailyAlignmentTime,
+            dayOfWeek: nil
+        )
+        
+        // Schedule daily review notification
+        scheduleActivityNotification(
+            type: .dailyReview,
+            time: preferences.dailyReviewTime,
+            dayOfWeek: nil
+        )
+        
+        // Schedule weekly review notification
+        scheduleActivityNotification(
+            type: .weeklyReview,
+            time: preferences.weeklyReviewTime,
+            dayOfWeek: preferences.weeklyReviewDay
+        )
+    }
+    
+    func scheduleActivityNotification(type: ActivityType, time: Date, dayOfWeek: Int?) {
+        guard permissionGranted else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = type.notificationTitle
+        content.body = type.notificationBody
+        content.sound = .default
+        content.userInfo = ["activityType": type.rawValue]
+        
+        // Create date components for the trigger
+        var dateComponents = Calendar.current.dateComponents([.hour, .minute], from: time)
+        
+        // If day of week is specified (for weekly notifications)
+        if let dayOfWeek = dayOfWeek {
+            dateComponents.weekday = dayOfWeek
+        }
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let identifier = "activity-notification-\(type.rawValue)"
+        
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Error scheduling \(type.displayName) notification: \(error.localizedDescription)")
+            } else {
+                print("\(type.displayName) notification scheduled for \(time)")
+            }
+        }
+    }
+    
+    func cancelActivityNotifications() {
+        let identifiers = [
+            "activity-notification-\(ActivityType.dailyAlignment.rawValue)",
+            "activity-notification-\(ActivityType.dailyReview.rawValue)",
+            "activity-notification-\(ActivityType.weeklyReview.rawValue)"
+        ]
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+    
+    // Legacy method for backward compatibility
     func scheduleDailyReminder(time: Date) {
         guard permissionGranted else { return }
         

@@ -5,28 +5,35 @@ struct DayDetailView: View {
     @State var selectedDate: Date
     @Query private var allAlignments: [DailyAlignment]
     @Query private var allJournalEntries: [JournalEntry]
+    @Query private var allDailyReviews: [DailyReview]
+    @Query private var allWeeklyReviews: [WeeklyReview]
     private let calendar = Calendar.current
     
     init(selectedDate: Date) {
         self.selectedDate = selectedDate
-        // Filter alignments to only include the selected date
+    }
+    
+    // Filtered data based on current selectedDate
+    private var alignmentsForSelectedDate: [DailyAlignment] {
         let startOfDay = calendar.startOfDay(for: selectedDate)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        
-        self._allAlignments = Query(FetchDescriptor<DailyAlignment>(
-            predicate: #Predicate { alignment in
-                alignment.date >= startOfDay && alignment.date < endOfDay
-            },
-            sortBy: [SortDescriptor(\DailyAlignment.date, order: .reverse)]
-        ))
-        
-        // Filter journal entries to only include the selected date
-        self._allJournalEntries = Query(FetchDescriptor<JournalEntry>(
-            predicate: #Predicate { entry in
-                entry.date >= startOfDay && entry.date < endOfDay
-            },
-            sortBy: [SortDescriptor(\JournalEntry.date, order: .reverse)]
-        ))
+        return allAlignments.filter { $0.date >= startOfDay && $0.date < endOfDay }
+    }
+    
+    private var journalEntriesForSelectedDate: [JournalEntry] {
+        let startOfDay = calendar.startOfDay(for: selectedDate)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        return allJournalEntries.filter { $0.date >= startOfDay && $0.date < endOfDay }
+    }
+    
+    private var dailyReviewsForSelectedDate: [DailyReview] {
+        let startOfDay = calendar.startOfDay(for: selectedDate)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        return allDailyReviews.filter { $0.date >= startOfDay && $0.date < endOfDay && !$0.isWeeklyReview }
+    }
+    
+    private var weeklyReviewsForSelectedDate: [WeeklyReview] {
+        return allWeeklyReviews.filter { $0.startDate <= selectedDate && $0.endDate >= selectedDate }
     }
     
     var body: some View {
@@ -35,8 +42,9 @@ struct DayDetailView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // Week navigation strip
-                    weekNavigation
+                    // Weekly Date Selector
+                    WeeklyDateSelector(selectedDate: $selectedDate)
+                        .padding(.top, 8)
                     // Day navigation arrows and date
                     HStack {
                         Button(action: { selectedDate = calendar.date(byAdding: .day, value: -1, to: selectedDate)! }) {
@@ -57,98 +65,16 @@ struct DayDetailView: View {
                     }
                     .padding(.top, 20)
                     
-                    // Show journal entries for the selected date
-                    let journalEntries = journalEntriesForSelectedDate
-                    
-                    if !journalEntries.isEmpty {
-                        Text("\(journalEntries.count) Alignment\(journalEntries.count > 1 ? "s" : "") Completed")
-                            .font(.title2)
-                            .foregroundColor(.green)
-                            
-                        ForEach(journalEntries) { entry in
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text(entry.goal?.text ?? "Goal")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                    
-                                    Spacer()
-                                    
-                                    Text(entry.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Prompt:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    Text(entry.prompt)
-                                        .font(.body)
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.purple.opacity(0.2))
-                                        .cornerRadius(10)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Response:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    Text(entry.response)
-                                        .font(.body)
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.gray.opacity(0.2))
-                                        .cornerRadius(10)
-                                }
-                            }
-                            .padding()
-                            .background(Color.black.opacity(0.3))
-                            .cornerRadius(12)
-                            .padding(.vertical, 8)
-                        }
-                    } else if let alignment = alignmentForSelectedDate, alignment.completed {
-                        Text("Alignment Completed")
-                            .font(.title2)
-                            .foregroundColor(.green)
-                        if !alignment.goals.isEmpty {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Goals aligned with:")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                ForEach(alignment.goals, id: \.id) { goal in
-                                    HStack {
-                                        Text(goal.text)
-                                            .font(.body)
-                                            .foregroundColor(.white)
-                                            .padding(8)
-                                            .background(Color.gray.opacity(0.2))
-                                            .cornerRadius(10)
-                                        Spacer()
-                                        Text("\(alignmentCount(for: goal)) \(alignmentCount(for: goal) == 1 ? "day" : "days") aligned")
-                                            .font(.caption)
-                                            .foregroundColor(.green)
-                                    }
-                                }
-                            }
-                            .padding(.top, 10)
-                        } else {
-                            Text("No goals recorded for this day.")
-                                .foregroundColor(.gray)
-                        }
-                    } else if let alignment = alignmentForSelectedDate, !alignment.completed {
-                        Text("Alignment Started but Not Completed")
-                            .font(.title2)
-                            .foregroundColor(.yellow)
-                    } else {
-                        Text("No alignment data for this day.")
-                            .font(.title2)
-                            .foregroundColor(.gray)
+                    // Show all session data for the selected date
+                    VStack(spacing: 24) {
+                        // Daily Alignment Section
+                        alignmentSection
+                        
+                        // Daily Review Section
+                        dailyReviewSection
+                        
+                        // Weekly Review Section
+                        weeklyReviewSection
                     }
                     
                     Spacer()
@@ -175,20 +101,262 @@ struct DayDetailView: View {
     
     // Computed property for the alignment for the selected date
     private var alignmentForSelectedDate: DailyAlignment? {
-        let startOfDay = calendar.startOfDay(for: selectedDate)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        return allAlignments.first(where: { $0.date >= startOfDay && $0.date < endOfDay })
+        return alignmentsForSelectedDate.first
     }
     
-    // Computed property for journal entries for the selected date
-    private var journalEntriesForSelectedDate: [JournalEntry] {
-        return allJournalEntries
+    // MARK: - Section Views
+    
+    // Daily Alignment Section
+    private var alignmentSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Alignment")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            let journalEntries = journalEntriesForSelectedDate
+            let alignments = alignmentsForSelectedDate
+            
+            if !journalEntries.isEmpty {
+                Text("\(journalEntries.count) Alignment\(journalEntries.count > 1 ? "s" : "") Completed")
+                    .font(.headline)
+                    .foregroundColor(.green)
+                    
+                ForEach(journalEntries) { entry in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text(entry.goal?.text ?? "Goal")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Prompt:")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            Text(entry.prompt)
+                                .font(.body)
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.purple.opacity(0.2))
+                                .cornerRadius(10)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Response:")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            Text(entry.response)
+                                .font(.body)
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(10)
+                        }
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                }
+            } else if let alignment = alignments.first, alignment.completed {
+                Text("Alignment Completed")
+                    .font(.headline)
+                    .foregroundColor(.green)
+                if !alignment.goals.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Goals aligned with:")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                        ForEach(alignment.goals, id: \.id) { goal in
+                            HStack {
+                                Text(goal.text)
+                                    .font(.body)
+                                    .foregroundColor(.white)
+                                    .padding(8)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(8)
+                                Spacer()
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                }
+            } else if let alignment = alignments.first, !alignment.completed {
+                Text("Alignment Started but Not Completed")
+                    .font(.headline)
+                    .foregroundColor(.yellow)
+            } else {
+                Text("No alignment data for this day")
+                    .font(.body)
+                    .foregroundColor(.gray)
+            }
+        }
     }
-    // Count how many days a goal has been aligned with (across all time)
-    private func alignmentCount(for goal: Goal) -> Int {
-        allAlignments.filter { alignment in
-            alignment.goals.contains(where: { $0.id == goal.id })
-        }.count
+    
+    // Daily Review Section
+    private var dailyReviewSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Review")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            let dailyReviews = dailyReviewsForSelectedDate
+            
+            if !dailyReviews.isEmpty {
+                ForEach(dailyReviews, id: \.date) { review in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Daily Review Completed")
+                                .font(.headline)
+                                .foregroundColor(.green)
+                            
+                            Spacer()
+                            
+                            Text(review.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        if review.overallScore > 0 {
+                            HStack {
+                                Text("Overall Score:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Text("\(review.overallScore)/10")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Spacer()
+                            }
+                        }
+                        
+                        if !review.principleReviews.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Principle Reviews:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                ForEach(review.principleReviews, id: \.id) { principleReview in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(principleReview.principle?.text ?? "Principle")
+                                                .font(.body)
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                            Text("\(principleReview.score)/10")
+                                                .font(.body)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(principleReview.score >= 7 ? .green : principleReview.score >= 4 ? .orange : .red)
+                                        }
+                                        
+                                        if !principleReview.reflectionText.isEmpty {
+                                            Text(principleReview.reflectionText)
+                                                .font(.body)
+                                                .foregroundColor(.white.opacity(0.8))
+                                                .padding(8)
+                                                .background(Color.gray.opacity(0.2))
+                                                .cornerRadius(8)
+                                        }
+                                    }
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.03))
+                                    .cornerRadius(8)
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                }
+            } else {
+                Text("No daily review data for this day")
+                    .font(.body)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+    
+    // Weekly Review Section
+    private var weeklyReviewSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Weekly Review")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            if !weeklyReviewsForSelectedDate.isEmpty {
+                ForEach(weeklyReviewsForSelectedDate, id: \.startDate) { weeklyReview in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Weekly Review Completed")
+                                .font(.headline)
+                                .foregroundColor(.green)
+                            
+                            Spacer()
+                            
+                            Text("\(formatDateRange(start: weeklyReview.startDate, end: weeklyReview.endDate))")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Reflection:")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            Text(weeklyReview.reflectionText)
+                                .font(.body)
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.blue.opacity(0.2))
+                                .cornerRadius(10)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Goals for Next Week:")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            Text(weeklyReview.goalsForNextWeek)
+                                .font(.body)
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.green.opacity(0.2))
+                                .cornerRadius(10)
+                        }
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                }
+            } else {
+                Text("No weekly review data for this week")
+                    .font(.body)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+    
+    // Helper function to format date range
+    private func formatDateRange(start: Date, end: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
     }
     
     // Week navigation view

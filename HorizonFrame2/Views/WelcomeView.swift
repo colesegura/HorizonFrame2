@@ -46,36 +46,33 @@ struct WelcomeView: View {
                             .padding(.horizontal, 20)
                     }
                     
-                    SignInWithAppleButton(
-                        .signIn,
-                        onRequest: { request in
-                            request.requestedScopes = [.fullName, .email]
-                        },
-                        onCompletion: { result in
-                            switch result {
-                            case .success(_):
-                                // Handle successful authorization
-                                print("Apple Sign In successful")
-                                isAuthenticated = true
-                                
-                                // Set user as existing for future sessions
-                                isExistingUser = true
-                                
-                                // Proceed to onboarding
-                                withAnimation {
-                                    if let next = onNext {
-                                        next()
-                                    }
-                                }
-                                
-                            case .failure(let error):
-                                print("Apple Sign In failed: \(error.localizedDescription)")
+                    // TEMPORARY: Skip Apple Sign In for testing
+                    Button(action: {
+                        // Handle successful authorization (testing bypass)
+                        print("Apple Sign In bypassed for testing")
+                        isAuthenticated = true
+                        
+                        // Set user as existing for future sessions
+                        isExistingUser = true
+                        
+                        // Proceed to onboarding
+                        withAnimation {
+                            if let next = onNext {
+                                next()
                             }
                         }
-                    )
-                    .signInWithAppleButtonStyle(.white) // Set to white style with black text
-                    .frame(width: UIScreen.main.bounds.width * 0.85, height: 50)
-                    .cornerRadius(15)
+                    }) {
+                        HStack {
+                            Image(systemName: "applelogo")
+                                .font(.title3)
+                            Text("Continue with Apple")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.black)
+                        .frame(width: UIScreen.main.bounds.width * 0.85, height: 50)
+                        .background(Color.white)
+                        .cornerRadius(15)
+                    }
                     .padding(.top, 8)
                 }
                 .padding(.bottom, 30)

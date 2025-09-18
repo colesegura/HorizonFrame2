@@ -23,6 +23,9 @@ struct HorizonFrame2App: App {
             DailyReview.self,
             PrincipleReview.self,
             WeeklyReview.self,
+            UserInterest.self,
+            JournalSession.self,
+            JournalPrompt.self,
         ])
 
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

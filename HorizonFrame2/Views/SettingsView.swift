@@ -14,6 +14,7 @@ struct SettingsView: View {
     
     @State private var showingNotificationTestView = false
     @State private var showingNotificationPreferencesView = false
+    @State private var showingActivityScheduleView = false
 
 
     var body: some View {
@@ -37,6 +38,17 @@ struct SettingsView: View {
                     Section(header: Text("Notifications").foregroundColor(.gray)) {
                         Toggle("Daily Reminder", isOn: $isReminderEnabled)
                             .tint(.green)
+                        
+                        // Activity Schedule button - always visible
+                        Button(action: {
+                            showingActivityScheduleView = true
+                        }) {
+                            HStack {
+                                Image(systemName: "calendar.badge.clock")
+                                Text("Activity Schedule")
+                            }
+                        }
+                        .foregroundColor(.blue)
                         
                         // Test notification button - always visible
                         Button(action: {
@@ -132,6 +144,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingNotificationPreferencesView) {
             NotificationPreferencesView()
+        }
+        .sheet(isPresented: $showingActivityScheduleView) {
+            NotificationScheduleView()
         }
         .onAppear {
             notificationManager.checkPermission()

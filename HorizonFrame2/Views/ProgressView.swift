@@ -4,7 +4,11 @@ import SwiftData
 struct ProgressView: View {
     @Query(sort: \DailyAlignment.date, order: .reverse) private var alignments: [DailyAlignment]
     @Query private var goals: [Goal]
+    @Query private var userInterests: [UserInterest]
+    @Query(sort: \JournalSession.date, order: .reverse) private var journalSessions: [JournalSession]
     @State private var displayedMonth: Date = Date()
+    @State private var selectedDate: Date = Date()
+    @State private var selectedTab: ProgressTab = .overview
     
     // Computed properties for statistics
     private var progressMetrics: ProgressMetrics {
@@ -13,6 +17,10 @@ struct ProgressView: View {
     
     private var activeGoals: [Goal] {
         goals.filter { !$0.isArchived }
+    }
+    
+    private var activeInterests: [UserInterest] {
+        userInterests.filter { $0.isActive }
     }
     
     // Filter for this week's entries
@@ -53,6 +61,10 @@ struct ProgressView: View {
                 VStack(spacing: 24) {
                     Spacer(minLength: 60) // Space for header
                     
+                    // Weekly Date Selector
+                    WeeklyDateSelector(selectedDate: $selectedDate)
+                        .padding(.top, 8)
+                    
                     // Simple title - matching Today page style
                     Text("Your Progress")
                         .font(.system(size: 32))
@@ -66,19 +78,35 @@ struct ProgressView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
                     
-                    // Progress content
+                    // Tab selector
+                    HStack(spacing: 0) {
+                        ForEach(ProgressTab.allCases, id: \.self) { tab in
+                            Button(action: { selectedTab = tab }) {
+                                Text(tab.rawValue)
+                                    .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))
+                                    .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.6))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(selectedTab == tab ? Color.white.opacity(0.2) : Color.clear)
+                                    )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+                    
                     ScrollView {
                         VStack(spacing: 32) {
-                            // Simple stats
-                            simpleStatsSection
-                            
-                            // Goals progress
-                            if !activeGoals.isEmpty {
-                                simpleGoalsSection
+                            switch selectedTab {
+                            case .overview:
+                                overviewContent
+                            case .interests:
+                                interestsContent
+                            case .calendar:
+                                calendarContent
                             }
-                            
-                            // Calendar
-                            simpleCalendarSection
                         }
                         .padding(.horizontal, 24)
                         .padding(.bottom, 120)
@@ -90,6 +118,47 @@ struct ProgressView: View {
             .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
             .statusBar(hidden: true)
+        }
+    }
+    
+    // MARK: - Tab Content
+    
+    private var overviewContent: some View {
+        VStack(spacing: 32) {
+            // Simple stats
+            simpleStatsSection
+            
+            // Goals progress
+            if !activeGoals.isEmpty {
+                simpleGoalsSection
+            }
+            
+            // Interest overview
+            if !activeInterests.isEmpty {
+                interestOverviewSection
+            }
+        }
+    }
+    
+    private var interestsContent: some View {
+        VStack(spacing: 32) {
+            if activeInterests.isEmpty {
+                emptyInterestsSection
+            } else {
+                ForEach(activeInterests) { interest in
+                    InterestProgressCard(interest: interest, journalSessions: journalSessions)
+                }
+            }
+        }
+    }
+    
+    private var calendarContent: some View {
+        VStack(spacing: 32) {
+            // Full Month Calendar
+            fullMonthCalendarSection
+            
+            // Selected Date Details
+            selectedDateDetailsSection
         }
     }
     
@@ -111,10 +180,10 @@ struct ProgressView: View {
                 Spacer()
                 
                 VStack {
-                    Text("\(progressMetrics.totalEntries)")
+                    Text("\(totalJournalSessions)")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white.opacity(0.9))
-                    Text("Total Entries")
+                    Text("Journal Sessions")
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -122,10 +191,10 @@ struct ProgressView: View {
                 Spacer()
                 
                 VStack {
-                    Text("\(activeGoals.count)")
+                    Text("\(activeInterests.count)")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white.opacity(0.9))
-                    Text("Active Goals")
+                    Text("Active Interests")
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -158,15 +227,110 @@ struct ProgressView: View {
         }
     }
     
-    // Simple calendar section
-    private var simpleCalendarSection: some View {
+    // Full month calendar section
+    private var fullMonthCalendarSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Activity Calendar")
                 .font(.system(size: 20, weight: .medium))
                 .foregroundColor(.white.opacity(0.9))
             
-            SimpleProgressCalendar(alignments: alignments)
+            ClickableProgressCalendar(alignments: alignments, selectedDate: $selectedDate)
         }
+    }
+    
+    // Selected date details section
+    private var selectedDateDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Details for \(formattedSelectedDate)")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+            
+            NavigationLink(destination: DayDetailView(selectedDate: selectedDate)) {
+                HStack {
+                    Text("View Full Details")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.1))
+                )
+            }
+        }
+    }
+    
+    private var totalJournalSessions: Int {
+        journalSessions.filter { $0.completed }.count
+    }
+    
+    // Interest overview section
+    private var interestOverviewSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Interest Progress")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+            
+            ForEach(activeInterests.prefix(3)) { interest in
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(interest.displayName)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                        
+                        Text("Level \(interest.currentLevel)/10")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    
+                    Spacer()
+                    
+                    // Recent average score
+                    if let avgScore = getRecentAverageScore(for: interest) {
+                        VStack {
+                            Text("\(avgScore, specifier: "%.1f")")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(scoreColor(avgScore))
+                            Text("avg")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            
+            if activeInterests.count > 3 {
+                Text("+ \(activeInterests.count - 3) more interests")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+        }
+    }
+    
+    // Empty interests section
+    private var emptyInterestsSection: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "target")
+                .font(.system(size: 48))
+                .foregroundColor(.white.opacity(0.3))
+            
+            Text("No Active Interests")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+            
+            Text("Complete the onboarding flow to set up your interests and start tracking progress.")
+                .font(.system(size: 16))
+                .foregroundColor(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .padding(.vertical, 40)
     }
     
     // Helper method to count alignments for a goal
@@ -346,21 +510,60 @@ struct ProgressView: View {
         return milestones
     }
     
+    // Formatted selected date
+    private var formattedSelectedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        return formatter.string(from: selectedDate)
+    }
+    
     // Get motivational text based on progress
     private var motivationalText: String {
-        let texts = [
-            "Every day brings you closer to your goals",
-            "Small steps lead to big changes",
-            "Your consistency is building momentum",
-            "You're making progress, keep going!",
-            "Your future self thanks you for today's effort"
-        ]
-        
-        // Select text based on streak or random if no streak
-        if progressMetrics.currentStreak > 0 {
-            return texts[progressMetrics.currentStreak % texts.count]
+        if !activeInterests.isEmpty {
+            let interestTexts = [
+                "Your interests are shaping your future",
+                "Every reflection builds self-awareness",
+                "Progress in small areas creates big changes",
+                "Your journey of growth continues",
+                "Consistency in your interests pays off"
+            ]
+            return interestTexts[Int.random(in: 0..<interestTexts.count)]
         } else {
-            return texts[Int.random(in: 0..<texts.count)]
+            let texts = [
+                "Every day brings you closer to your goals",
+                "Small steps lead to big changes",
+                "Your consistency is building momentum",
+                "You're making progress, keep going!",
+                "Your future self thanks you for today's effort"
+            ]
+            
+            // Select text based on streak or random if no streak
+            if progressMetrics.currentStreak > 0 {
+                return texts[progressMetrics.currentStreak % texts.count]
+            } else {
+                return texts[Int.random(in: 0..<texts.count)]
+            }
+        }
+    }
+    
+    // Helper methods for interest tracking
+    private func getRecentAverageScore(for interest: UserInterest) -> Double? {
+        let recentSessions = journalSessions
+            .filter { $0.userInterest?.id == interest.id && $0.progressScore != nil }
+            .prefix(7) // Last 7 sessions
+        
+        guard !recentSessions.isEmpty else { return nil }
+        
+        let totalScore = recentSessions.compactMap { $0.progressScore }.reduce(0, +)
+        return Double(totalScore) / Double(recentSessions.count)
+    }
+    
+    private func scoreColor(_ score: Double) -> Color {
+        switch score {
+        case 8...10: return .green
+        case 6..<8: return .yellow
+        case 4..<6: return .orange
+        default: return .red
         }
     }
     
@@ -375,6 +578,297 @@ struct ProgressView: View {
         let calendar = Calendar.current
         let currentMonth = calendar.startOfDay(for: calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!)
         return displayedMonth < currentMonth
+    }
+}
+
+// Progress tab enum
+enum ProgressTab: String, CaseIterable {
+    case overview = "Overview"
+    case interests = "Interests"
+    case calendar = "Calendar"
+}
+
+// Interest progress card component
+struct InterestProgressCard: View {
+    let interest: UserInterest
+    let journalSessions: [JournalSession]
+    
+    private var recentSessions: [JournalSession] {
+        journalSessions
+            .filter { $0.userInterest?.id == interest.id }
+            .prefix(30) // Last 30 sessions
+            .sorted { $0.date < $1.date }
+    }
+    
+    private var weeklyScores: [Double] {
+        let calendar = Calendar.current
+        let today = Date()
+        var scores: [Double] = []
+        
+        for weekOffset in (0..<4).reversed() {
+            let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today)!
+            let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart)!
+            
+            let weekSessions = recentSessions.filter { session in
+                session.date >= weekStart && session.date <= weekEnd
+            }
+            
+            if !weekSessions.isEmpty {
+                let avgScore = weekSessions.compactMap { $0.progressScore }.reduce(0, +) / weekSessions.count
+                scores.append(Double(avgScore))
+            } else {
+                scores.append(0)
+            }
+        }
+        
+        return scores
+    }
+    
+    private var currentAverage: Double {
+        let recentScores = recentSessions.prefix(7).compactMap { $0.progressScore }
+        guard !recentScores.isEmpty else { return 0 }
+        return Double(recentScores.reduce(0, +)) / Double(recentScores.count)
+    }
+    
+    private var trend: String {
+        guard weeklyScores.count >= 2 else { return "stable" }
+        let recent = weeklyScores.suffix(2)
+        let change = recent.last! - recent.first!
+        
+        if change > 0.5 { return "improving" }
+        else if change < -0.5 { return "declining" }
+        else { return "stable" }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(interest.displayName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Text("Level \(interest.currentLevel)/10")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(currentAverage, specifier: "%.1f")/10")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(scoreColor(currentAverage))
+                    
+                    Text(trend)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(trendColor)
+                }
+            }
+            
+            // Progress bar for current level
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Progress to Level \(interest.currentLevel + 1)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.7))
+                
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.2))
+                            .frame(height: 8)
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: geometry.size.width * levelProgress, height: 8)
+                    }
+                }
+                .frame(height: 8)
+            }
+            
+            // Weekly trend chart
+            if !weeklyScores.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("4-Week Trend")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    HStack(alignment: .bottom, spacing: 4) {
+                        ForEach(Array(weeklyScores.enumerated()), id: \.offset) { index, score in
+                            VStack {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(scoreColor(score))
+                                    .frame(width: 12, height: max(4, score * 3))
+                                
+                                Text("W\(index + 1)")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                }
+            }
+            
+            // Session count
+            Text("\(recentSessions.count) sessions completed")
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.5))
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.05))
+        )
+    }
+    
+    private var levelProgress: Double {
+        // Calculate progress within current level based on recent performance
+        let recentAvg = currentAverage
+        let targetForNextLevel = 7.0 // Need 7+ average to advance
+        return min(1.0, recentAvg / targetForNextLevel)
+    }
+    
+    private func scoreColor(_ score: Double) -> Color {
+        switch score {
+        case 8...10: return .green
+        case 6..<8: return .yellow
+        case 4..<6: return .orange
+        default: return .red
+        }
+    }
+    
+    private var trendColor: Color {
+        switch trend {
+        case "improving": return .green
+        case "declining": return .red
+        default: return .white.opacity(0.6)
+        }
+    }
+}
+
+// Clickable calendar component for Progress page
+struct ClickableProgressCalendar: View {
+    let alignments: [DailyAlignment]
+    @Binding var selectedDate: Date
+    @State private var displayedMonth: Date = Date()
+    private let calendar = Calendar.current
+    private let weekDays = ["S", "M", "T", "W", "T", "F", "S"]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Month navigation
+            HStack {
+                Button(action: { 
+                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth)! 
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.white.opacity(0.7))
+                        .font(.system(size: 16))
+                }
+                
+                Spacer()
+                
+                Text(monthYearString)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+
+                Spacer()
+                
+                Button(action: { 
+                    if canGoToNextMonth {
+                        displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth)! 
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(canGoToNextMonth ? .white.opacity(0.7) : .white.opacity(0.3))
+                        .font(.system(size: 16))
+                }
+                .disabled(!canGoToNextMonth)
+            }
+            
+            // Weekday headers
+            HStack {
+                ForEach(weekDays, id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Calendar grid
+            let days = daysInMonthGrid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 6) {
+                ForEach(days, id: \.self) { day in
+                    if let day = day {
+                        let isCompleted = completedDays.contains(calendar.startOfDay(for: day))
+                        let isFuture = day > calendar.startOfDay(for: .now)
+                        let isSelected = calendar.isDate(day, inSameDayAs: selectedDate)
+                        
+                        NavigationLink(destination: DayDetailView(selectedDate: day)) {
+                            ZStack {
+                                if isSelected {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.3))
+                                        .frame(width: 32, height: 32)
+                                } else if isCompleted {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.8))
+                                        .frame(width: 28, height: 28)
+                                }
+                                
+                                Text("\(calendar.component(.day, from: day))")
+                                    .font(.system(size: 14, weight: isCompleted ? .bold : .regular))
+                                    .foregroundColor(isSelected ? .white : (isCompleted ? .black : (isFuture ? .white.opacity(0.3) : .white.opacity(0.7))))
+                            }
+                            .frame(height: 32)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text("")
+                            .frame(height: 32)
+                    }
+                }
+            }
+        }
+    }
+    
+    private var completedDays: Set<Date> {
+        Set(alignments.filter { $0.completed }.map { calendar.startOfDay(for: $0.date) })
+    }
+    
+    private var monthYearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: displayedMonth)
+    }
+    
+    private var canGoToNextMonth: Bool {
+        let currentMonth = calendar.startOfDay(for: calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!)
+        return displayedMonth < currentMonth
+    }
+    
+    private var daysInMonthGrid: [Date?] {
+        let range = calendar.range(of: .day, in: .month, for: displayedMonth)!
+        let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth) - 1
+        var days: [Date?] = Array(repeating: nil, count: firstWeekday)
+        for day in range {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) {
+                days.append(date)
+            }
+        }
+        while days.count % 7 != 0 {
+            days.append(nil)
+        }
+        return days
     }
 }
 

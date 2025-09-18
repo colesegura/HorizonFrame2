@@ -64,85 +64,97 @@ struct OnboardingView: View {
                             }
                         }
                         
-                        OccupationView(showOnboarding: $showOnboarding, tag: 2) {
+                        InterestSelectionView(showOnboarding: $showOnboarding, tag: 2) {
                             withAnimation {
                                 tabSelection = 3
                             }
                         }
                         
-                        GoalReviewFrequencyView(showOnboarding: $showOnboarding, tag: 3) {
+                        InterestFollowUpView(showOnboarding: $showOnboarding, tag: 3) {
                             withAnimation {
                                 tabSelection = 4
                             }
                         }
                         
-                        BiggestBlockerView(showOnboarding: $showOnboarding, tag: 4) {
+                        OccupationView(showOnboarding: $showOnboarding, tag: 4) {
                             withAnimation {
                                 tabSelection = 5
                             }
                         }
                         
-                        NinetyDayMilestoneView(showOnboarding: $showOnboarding, tag: 5) {
+                        GoalReviewFrequencyView(showOnboarding: $showOnboarding, tag: 5) {
                             withAnimation {
                                 tabSelection = 6
                             }
                         }
                         
-                        ActionableStepView(showOnboarding: $showOnboarding, tag: 6) {
+                        BiggestBlockerView(showOnboarding: $showOnboarding, tag: 6) {
                             withAnimation {
                                 tabSelection = 7
                             }
                         }
                         
-                        FocusTimeView(showOnboarding: $showOnboarding, tag: 7) {
+                        NinetyDayMilestoneView(showOnboarding: $showOnboarding, tag: 7) {
                             withAnimation {
                                 tabSelection = 8
                             }
                         }
                         
-                        GoalTrackingToolView(showOnboarding: $showOnboarding, tag: 8) {
+                        ActionableStepView(showOnboarding: $showOnboarding, tag: 8) {
                             withAnimation {
                                 tabSelection = 9
                             }
                         }
                         
-                        FallingShortFrequencyView(showOnboarding: $showOnboarding, tag: 9) {
+                        FocusTimeView(showOnboarding: $showOnboarding, tag: 9) {
                             withAnimation {
                                 tabSelection = 10
                             }
                         }
                         
-                        MindClearingBenefitsView(showOnboarding: $showOnboarding, tag: 10) {
+                        GoalTrackingToolView(showOnboarding: $showOnboarding, tag: 10) {
                             withAnimation {
                                 tabSelection = 11
                             }
                         }
-
-                        AlignmentReportLoadingView(showOnboarding: $showOnboarding, tag: 11) {
+                        
+                        FallingShortFrequencyView(showOnboarding: $showOnboarding, tag: 11) {
                             withAnimation {
                                 tabSelection = 12
                             }
                         }
-
-                        AlignmentHookView(showOnboarding: $showOnboarding, tag: 12) {
+                        
+                        MindClearingBenefitsView(showOnboarding: $showOnboarding, tag: 12) {
                             withAnimation {
                                 tabSelection = 13
                             }
                         }
 
-                        AlignmentDriftView(showOnboarding: $showOnboarding, tag: 13) {
+                        AlignmentReportLoadingView(showOnboarding: $showOnboarding, tag: 13) {
+                            withAnimation {
+                                tabSelection = 14
+                            }
+                        }
+
+                        AlignmentHookView(showOnboarding: $showOnboarding, tag: 14) {
                             withAnimation {
                                 tabSelection = 15
                             }
                         }
 
-                        PricingOptionsView(showOnboarding: $showOnboarding, tag: 15) {
+                        AlignmentDriftView(showOnboarding: $showOnboarding, tag: 15) {
                             withAnimation {
                                 tabSelection = 16
                             }
                         }
 
-                        OnboardingCompletionView(showOnboarding: $showOnboarding, tag: 16)
+                        PricingOptionsView(showOnboarding: $showOnboarding, tag: 16) {
+                            withAnimation {
+                                tabSelection = 17
+                            }
+                        }
+
+                        OnboardingCompletionView(showOnboarding: $showOnboarding, tag: 17)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 }

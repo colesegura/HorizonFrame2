@@ -6,6 +6,7 @@ struct GoalsView: View {
     @Query(sort: \Goal.order) private var goals: [Goal]
     @Query private var alignments: [DailyAlignment] // Fetch all alignments
     @Query private var personalCodes: [PersonalCode]
+    @Query private var userInterests: [UserInterest]
     @State private var showingAddGoalView: Bool = false
     @State private var editingGoal: Goal? = nil
     @State private var addingActionItemTo: Goal? = nil
@@ -137,6 +138,12 @@ struct GoalsView: View {
                                         .background(Color.white.opacity(0.1))
                                         .cornerRadius(16)
                                 }
+                            }
+                            .padding(.horizontal, 24)
+
+                            // --- Interests Section (for testing) ---
+                            Section(header: Text("Your Interests").font(.headline).foregroundColor(.gray).padding(.top, 20)) {
+                                interestsEditorSection()
                             }
                             .padding(.horizontal, 24)
 
@@ -278,6 +285,151 @@ struct GoalsView: View {
                 .padding(.horizontal)
         }
         .padding(.vertical, 20)
+    }
+    
+    @ViewBuilder
+    private func interestsEditorSection() -> some View {
+        VStack(spacing: 16) {
+            if userInterests.isEmpty {
+                VStack(spacing: 12) {
+                    Text("No interests selected")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Text("Add interests to get personalized journaling prompts")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.5))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 16)
+            } else {
+                ForEach(userInterests) { interest in
+                    interestRow(for: interest)
+                }
+            }
+            
+            // Quick add buttons for common interests
+            VStack(spacing: 12) {
+                Text("Quick Add:")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 8) {
+                    quickAddButton(for: .health, subcategory: "Diet")
+                    quickAddButton(for: .productivity, subcategory: "Time blocking")
+                    quickAddButton(for: .focus, subcategory: "Deep work")
+                    quickAddButton(for: .consistency, subcategory: "Daily habits")
+                }
+            }
+            .padding(.top, 8)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+    }
+    
+    @ViewBuilder
+    private func interestRow(for interest: UserInterest) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(interest.displayName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white)
+                
+                if let subcategory = interest.healthSubcategory {
+                    Text(subcategory.rawValue)
+                        .font(.system(size: 12))
+                        .foregroundColor(.blue)
+                } else if let subcategory = interest.subcategory, !subcategory.isEmpty {
+                    Text(subcategory)
+                        .font(.system(size: 12))
+                        .foregroundColor(.blue)
+                }
+                
+                HStack(spacing: 12) {
+                    Text("Active: \(interest.isActive ? "Yes" : "No")")
+                        .font(.system(size: 11))
+                        .foregroundColor(interest.isActive ? .green : .gray)
+                    
+                    if interest.baselineCompleted {
+                        Text("Baseline ✓")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                    }
+                    
+                    if interest.healthSubcategory == .diet {
+                        Text("Level \(interest.currentLevel)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.purple)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            Menu {
+                Button(action: {
+                    toggleInterestActive(interest)
+                }) {
+                    Label(interest.isActive ? "Deactivate" : "Activate", 
+                          systemImage: interest.isActive ? "pause.circle" : "play.circle")
+                }
+                
+                if !interest.baselineCompleted {
+                    Button(action: {
+                        markBaselineCompleted(interest)
+                    }) {
+                        Label("Mark Baseline Complete", systemImage: "checkmark.circle")
+                    }
+                }
+                
+                Divider()
+                
+                Button(role: .destructive, action: {
+                    deleteInterest(interest)
+                }) {
+                    Label("Delete", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: 16))
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    @ViewBuilder
+    private func quickAddButton(for type: InterestType, subcategory: String) -> some View {
+        Button(action: {
+            addQuickInterest(type: type, subcategory: subcategory)
+        }) {
+            VStack(spacing: 4) {
+                Text(type.rawValue)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                
+                Text(subcategory)
+                    .font(.system(size: 10))
+                    .foregroundColor(.blue)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.blue.opacity(0.2))
+            .cornerRadius(8)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 
     @ViewBuilder
@@ -692,6 +844,83 @@ struct GoalsView: View {
     private func checkFocusAwards() {
         let awardManager = AwardManager(modelContext: modelContext)
         awardManager.checkAllAwards(stats: (0,0,0), totalFocuses: goals.count + 1)
+    }
+    
+    // MARK: - Interest Management Functions
+    
+    private func addQuickInterest(type: InterestType, subcategory: String) {
+        // Check if this interest already exists
+        let existingInterest = userInterests.first { interest in
+            interest.type == type.rawValue && interest.subcategory == subcategory
+        }
+        
+        if existingInterest != nil {
+            // Interest already exists, just activate it
+            existingInterest?.isActive = true
+            try? modelContext.save()
+            return
+        }
+        
+        // Create new interest
+        let newInterest = UserInterest(type: type, subcategory: subcategory)
+        newInterest.isActive = true
+        newInterest.baselineCompleted = false // For testing, you can set this to true
+        
+        // Health subcategory is automatically handled by the computed property
+        
+        modelContext.insert(newInterest)
+        
+        do {
+            try modelContext.save()
+            
+            // Add haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        } catch {
+            print("Error saving new interest: \(error)")
+        }
+    }
+    
+    private func toggleInterestActive(_ interest: UserInterest) {
+        interest.isActive.toggle()
+        
+        do {
+            try modelContext.save()
+            
+            // Add haptic feedback
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+        } catch {
+            print("Error toggling interest active state: \(error)")
+        }
+    }
+    
+    private func markBaselineCompleted(_ interest: UserInterest) {
+        interest.baselineCompleted = true
+        
+        do {
+            try modelContext.save()
+            
+            // Add haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        } catch {
+            print("Error marking baseline completed: \(error)")
+        }
+    }
+    
+    private func deleteInterest(_ interest: UserInterest) {
+        modelContext.delete(interest)
+        
+        do {
+            try modelContext.save()
+            
+            // Add haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        } catch {
+            print("Error deleting interest: \(error)")
+        }
     }
 }
 

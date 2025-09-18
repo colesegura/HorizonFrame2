@@ -9,6 +9,12 @@ class OnboardingDataManager: ObservableObject {
     @Published var onboardingVisualization: String = ""
     @Published var onboardingActionItem: String = ""
     
+    // New properties for interest-based journaling
+    @Published var selectedInterests: [InterestType] = []
+    @Published var customInterestText: String = ""
+    @Published var interestSubcategories: [InterestType: String] = [:]
+    @Published var interestCustomTexts: [InterestType: String] = [:]
+    
     private init() {}
     
     // Store onboarding data
@@ -20,6 +26,9 @@ class OnboardingDataManager: ObservableObject {
     
     // Save onboarding data to SwiftData
     func saveToGoals(modelContext: ModelContext) {
+        // Save user interests first
+        saveUserInterests(modelContext: modelContext)
+        
         guard !onboardingGoal.isEmpty else { return }
         
         // Create the goal with visualization
@@ -68,11 +77,48 @@ class OnboardingDataManager: ObservableObject {
         clearOnboardingData()
     }
     
+    // Save user interests to SwiftData
+    func saveUserInterests(modelContext: ModelContext) {
+        for (index, interest) in selectedInterests.enumerated() {
+            let subcategory = interestSubcategories[interest]
+            let customText = interestCustomTexts[interest]
+            
+            let userInterest = UserInterest(
+                type: interest,
+                subcategory: subcategory,
+                customDescription: customText,
+                priority: index + 1
+            )
+            
+            modelContext.insert(userInterest)
+        }
+        
+        // Handle custom "Other" interest
+        if selectedInterests.contains(.other) && !customInterestText.isEmpty {
+            let customInterest = UserInterest(
+                type: .other,
+                customDescription: customInterestText,
+                priority: selectedInterests.count
+            )
+            modelContext.insert(customInterest)
+        }
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving user interests: \(error)")
+        }
+    }
+    
     // Clear temporary onboarding data
     func clearOnboardingData() {
         onboardingGoal = ""
         onboardingVisualization = ""
         onboardingActionItem = ""
+        selectedInterests = []
+        customInterestText = ""
+        interestSubcategories = [:]
+        interestCustomTexts = [:]
     }
     
     // Check if onboarding data exists

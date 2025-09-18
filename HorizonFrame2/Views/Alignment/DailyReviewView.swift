@@ -7,8 +7,14 @@ struct DailyReviewView: View {
     
     var personalCode: PersonalCode
     
+    @Query private var userInterests: [UserInterest]
+    @Query(sort: \JournalSession.date, order: .reverse) private var journalSessions: [JournalSession]
+    
     @State private var principleReviews: [PrincipleReview] = []
     @State private var overallScore: Int = 5
+    @State private var showEveningJournaling = false
+    @State private var principleReviewCompleted = false
+    @State private var showInterestBasedReview = false
     
     private var darkGray: Color { Color(hex: "1C1C1E") }
     
@@ -32,9 +38,9 @@ struct DailyReviewView: View {
                     }
                 }
                 
-                // Save Button
-                Button(action: saveReview) {
-                    Text("Save Review")
+                // Save Button - Modified to proceed to interest-based review
+                Button(action: proceedToInterestReview) {
+                    Text(hasActiveInterests ? "Continue to Interest Review" : "Continue to Evening Reflection")
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -49,6 +55,18 @@ struct DailyReviewView: View {
             .padding(24)
         }
         .onAppear(perform: setupInitialReviews)
+        .sheet(isPresented: $showInterestBasedReview) {
+            InterestBasedReviewView(onComplete: {
+                showInterestBasedReview = false
+                showEveningJournaling = true
+            })
+        }
+        .sheet(isPresented: $showEveningJournaling) {
+            EveningJournalingView(onComplete: {
+                showEveningJournaling = false
+                saveReview()
+            })
+        }
     }
     
     private func setupInitialReviews() {
@@ -58,6 +76,18 @@ struct DailyReviewView: View {
         for principle in personalCode.principles.sorted(by: { $0.order < $1.order }) {
             let newReview = PrincipleReview(score: 5, reflectionText: "", principle: principle)
             principleReviews.append(newReview)
+        }
+    }
+    
+    private var hasActiveInterests: Bool {
+        userInterests.contains { $0.isActive }
+    }
+    
+    private func proceedToInterestReview() {
+        if hasActiveInterests {
+            showInterestBasedReview = true
+        } else {
+            showEveningJournaling = true
         }
     }
     

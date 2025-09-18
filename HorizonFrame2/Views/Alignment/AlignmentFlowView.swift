@@ -19,8 +19,16 @@ struct AlignmentFlowView: View {
                 VisualizationView(currentPage: $currentPage, goalsToVisualize: selectedGoals)
                     .tag(1)
 
-                ActionItemsView(currentPage: $currentPage, goals: selectedGoals, onComplete: onComplete)
+                ActionItemsView(currentPage: $currentPage, goals: selectedGoals, onComplete: {
+                    // Move to journaling step
+                    withAnimation {
+                        currentPage = 3
+                    }
+                })
                     .tag(2)
+                
+                MorningJournalingView(currentPage: $currentPage, onComplete: onComplete)
+                    .tag(3)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .ignoresSafeArea()
@@ -34,7 +42,7 @@ struct AlignmentFlowView: View {
                             .foregroundColor(.white)
                     }
                     Spacer()
-                    CustomPageIndicator(pageCount: 3, currentPage: $currentPage)
+                    CustomPageIndicator(pageCount: 4, currentPage: $currentPage)
                     Spacer()
                     // A spacer to balance the back button
                     Image(systemName: "arrow.backward").opacity(0)
